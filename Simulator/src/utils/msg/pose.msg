@@ -1,0 +1,20 @@
+float64 t
+float32 x
+float32 y
+float32 z
+float32 vx
+float32 vy
+float32 vz
+float32 ax
+float32 ay
+float32 az
+float32 phi
+float32 teta
+float32 psi
+float32 vphi
+float32 vteta
+float32 vpsi
+float32 aphi
+float32 ateta
+float32 apsi
+

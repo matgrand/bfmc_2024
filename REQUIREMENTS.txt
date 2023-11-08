@@ -1,0 +1,10 @@
+# list of requirements for the python environment, to be installed with pip 
+empy
+PyYAML
+numpy
+catkin_pkg
+rospkg
+networkx
+opencv-python
+pynput
+matplotlib

@@ -1,0 +1,10 @@
+*.pyc
+stuff/__pycache__/*
+Simulator/devel/
+Simulator/build/
+Simulator/.vscode/
+Simulator/.catkin_workspace
+Simulator/src/CMakeLists.txt
+Simulator/**/*.pyc
+stuff/__pycache__/__init__.cpython-38.pyc
+.vscode/*
