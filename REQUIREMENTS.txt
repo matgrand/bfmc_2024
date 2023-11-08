@@ -8,3 +8,4 @@ networkx
 opencv-python
 pynput
 matplotlib
+tqdm
