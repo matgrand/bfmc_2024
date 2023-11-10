@@ -223,3 +223,5 @@ HW_PATH = join(dirname(__file__), 'hw.txt')
 STOPLINES_PATH = join(dirname(__file__), 'stop_line.txt')
 
 
+################### PATH PLANING ###################
+PATH_STEP_LENGTH = 0.01 # [m] interpolation step length for the path

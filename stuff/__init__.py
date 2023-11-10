@@ -1,7 +1,7 @@
 # this is utils
 #!/usr/bin/python3
 
-import cv2 as cv, numpy as np
+import cv2 as cv, numpy as np, networkx
 from stuff.names_and_constants import *
 
 # HELPER FUNCTIONS
@@ -27,8 +27,11 @@ def xy2cv(x, y, k=K_VERYSMALL):
     x,y = m2pix(x,k), m2pix(y,k)
     return (int(x), int(y))
 
+def p2cv(p, k=K_VERYSMALL): # point in the shape of np.array([x,y]) gets converted to cv2 point
+    assert p.shape == (2,), f'p shape: {p.shape}'
+    return xy2cv(p[0], p[1], k)
+
 def load_graph():
-    import networkx
     from os.path import join, exists, dirname
     graph_path = join(dirname(__file__), 'final_graph.graphml')
     assert exists(graph_path), f'graph file not found: {graph_path}'

@@ -9,77 +9,61 @@ from os.path import join, exists
 SHOW_IMGS = False
 
 class PathPlanning(): 
-    def __init__(self, map_img):
+    def __init__(self):
         # start and end nodes
-        self.source = str(86)
-        self.target = str(300)
+        self.source = str(473)
+        self.target = str(207)
 
         # initialize path
         self.path = []
         self.navigator = []# set of instruction for the navigator
         self.path_data = [] #additional data for the path (e.g. curvature, 
-        self.step_length = 0.01
-        # state=following/intersection/roundabout, next_action=left/right/straight, path_params_ahead)
+        self.step_length = PATH_STEP_LENGTH # step length for interpolation
 
         # previous index of the closest point on the path to the vehicle
         self.prev_index = 0
-
-        # read graph
-        this_file = os.path.dirname(__file__) #NOTE: keep this directory structure
-        map_path = join(this_file, 'Simulator/src/models_pkg/track/materials/textures/2024_VerySmall.png')
-        assert exists(map_path), f'Map file {map_path} does not exist'
 
         self.G = load_graph() # load the map graph
         # initialize route subgraph and list for interpolation
         self.route_graph = nx.DiGraph()
         self.route_list = []
-        self.old_nearest_point_index = None # used in search target point
 
         self.nodes_data = self.G.nodes.data()
         self.edges_data = self.G.edges.data()
 
-        self.int_mid = np.loadtxt(INT_MID_PATH, dtype=str) # mid intersection nodes
-        self.int_in = np.loadtxt(INT_IN_PATH, dtype=str) # intersecion entry nodes
-        self.int_out = np.loadtxt(INT_OUT_PATH, dtype=str) # intersecion exit nodes
-        self.ra_mid = np.loadtxt(RA_MID_PATH, dtype=str) # mid roundabout nodes
-        self.ra_in = np.loadtxt(RA_IN_PATH, dtype=str) # roundabout entry nodes
-        self.ra_out = np.loadtxt(RA_OUT_PATH, dtype=str) # roundabout exit nodes
+        self.int_mid =  list(np.loadtxt(INT_MID_PATH, dtype=str)) # mid intersection nodes
+        self.int_in =   list(np.loadtxt(INT_IN_PATH, dtype=str)) # intersecion entry nodes
+        self.int_out =  list(np.loadtxt(INT_OUT_PATH, dtype=str)) # intersecion exit nodes
+        self.ra_mid =   list(np.loadtxt(RA_MID_PATH, dtype=str)) # mid roundabout nodes
+        self.ra_in =    list(np.loadtxt(RA_IN_PATH, dtype=str)) # roundabout entry nodes
+        self.ra_out =   list(np.loadtxt(RA_OUT_PATH, dtype=str)) # roundabout exit nodes
+        self.highway_nodes = list(np.loadtxt(HW_PATH, dtype=str)) # highway nodes
 
         self.forbidden_nodes = self.int_mid + self.int_in + self.int_out + self.ra_mid + self.ra_in + self.ra_out 
 
         #event points
-        self.event_points = np.load('data/event_points.npy') #created in R coord
-        self.event_types = np.load('data/event_types.npy')
+        self.event_points = np.loadtxt(EVENT_POINTS_PATH, dtype=np.float32)
+        self.event_types = [EVENT_TYPES[int(i)] for i in np.loadtxt(EVENT_TYPES_PATH, dtype=np.int32)]
         assert len(self.event_points) == len(self.event_types), "event points and types are not the same length"
-        event_type_names = EVENT_TYPES
-        self.event_types = [event_type_names[int(i)] for i in self.event_types]
 
         # import nodes and edges
         self.list_of_nodes = list(self.G.nodes)
         self.list_of_edges = list(self.G.edges)
 
-        #spossible starting positions
+        #possible starting positions
         all_start_nodes = list(self.G.nodes)
         self.all_start_nodes = []
-        print(all_start_nodes)
-        print(self.forbidden_nodes)
         for n in all_start_nodes:
-            p = self.get_coord(n)
+            p = self.get_xy(n)
             min_dist = np.min(np.linalg.norm(p - self.event_points, axis=1))
             if n in self.forbidden_nodes or min_dist < 0.2:
-                print(n)
+                # print(n)
+                pass
             else:
                 self.all_start_nodes.append(n)
-        self.all_nodes_coords = np.array([self.get_coord(node) for node in self.all_start_nodes])
+        self.all_nodes_coords = np.array([self.get_xy(node) for node in self.all_start_nodes])
 
-        #highway nodes
-        self.highway_nodes = [str(i) for i in [*range(311,338), *range(375,398), *range(348,371), *range(400,424)]]
-
-        #bumpy road nodes
-        self.bumpy_road_nodes = [str(i) for i in [*range(427,466)]]
-
-        # import map to plot trajectory and car
-        self.map = map_img
+        self.map, _ = load_map()
 
     def roundabout_navigation(self, prev_node, curr_node, next_node):
         while next_node in self.ra_mid:
@@ -92,11 +76,11 @@ class PathPlanning():
                 break
                 
             #print("inside roundabout: ", curr_node)
-            pp = self.get_coord(prev_node)
+            pp = self.get_xy(prev_node)
             xp,yp = pp[0],pp[1]
-            pc = self.get_coord(curr_node)
+            pc = self.get_xy(curr_node)
             xc,yc = pc[0],pc[1]
-            pn = self.get_coord(next_node)
+            pn = self.get_xy(next_node)
             xn,yn = pn[0],pn[1]
 
             if curr_node in self.ra_in:
@@ -105,21 +89,14 @@ class PathPlanning():
                     dy = yn - yp
                     self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
                 else:
-                    if curr_node == '302':
-                        continue
-                    else:
-                        dx = xn - xp
-                        dy = yn - yp
-                        self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
+                    dx = xn - xp
+                    dy = yn - yp
+                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
             elif curr_node in self.ra_out:
-                if next_node in self.ra_mid:
-                    # remain inside roundabout
-                    if curr_node == '271':
-                        continue
-                    else:
-                        dx = xn - xp
-                        dy = yn - yp
-                        self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
+                if next_node in self.ra_mid: # if next node is in the roundabout
+                    dx = xn - xp
+                    dy = yn - yp
+                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
                 else:
                     dx = xn - xp
                     dy = yn - yp
@@ -135,7 +112,6 @@ class PathPlanning():
             next_node = list(self.route_graph.successors(curr_node))[0]
         else:
             next_node = None
-        
         self.navigator.append("exit roundabout at "+curr_node)
         self.navigator.append("go straight")
         return prev_node, curr_node, next_node
@@ -180,11 +156,11 @@ class PathPlanning():
         #print("next_node",next_node)
         self.navigator.append("go straight")
         while curr_node != self.target:
-            pp = self.get_coord(prev_node)
+            pp = self.get_xy(prev_node)
             xp,yp = pp[0],pp[1]
-            pc = self.get_coord(curr_node)
+            pc = self.get_xy(curr_node)
             xc,yc = pc[0],pc[1]
-            pn = self.get_coord(next_node)
+            pn = self.get_xy(next_node)
             xn,yn = pn[0],pn[1]
 
 
@@ -201,19 +177,13 @@ class PathPlanning():
             #print(f"CURR: {curr_node}, NEXT: {next_node}, PREV: {prev_node}")
             # ****** ROUNDABOUT NAVIGATION ******
             if next_is_roundabout_enter:
-                if curr_node == "342":
-                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(-1,0))))
-                    dx = xc - xp
-                    dy = yc - yp
-                    self.route_list.append((xc,yc+0.3*dy,np.rad2deg(np.arctan2(-1,0))))
-                else:
-                    dx = xc-xp
-                    dy = yc-yp
-                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-                    # add a further node
-                    dx = xc - xp
-                    dy = yc - yp
-                    self.route_list.append((xc+0.3*dx,yc+0.3*dy,np.rad2deg(np.arctan2(dy,dx))))
+                dx = xc-xp
+                dy = yc-yp
+                self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
+                # add a further node
+                dx = xc - xp
+                dy = yc - yp
+                self.route_list.append((xc+0.3*dx,yc+0.3*dy,np.rad2deg(np.arctan2(dy,dx))))
                 # enter the roundabout
                 self.navigator.append("enter roundabout at " + curr_node)
                 prev_node, curr_node, next_node = self.roundabout_navigation(prev_node, curr_node, next_node)
@@ -254,7 +224,6 @@ class PathPlanning():
                 dy = yn - yp
                 self.route_list.append((xn,yn,np.rad2deg(np.arctan2(dy,dx))))
                 next_node = None
-        
         self.navigator.append("stop")
 
     def compute_shortest_path(self, source=None, target=None, step_length=0.01):
@@ -291,7 +260,7 @@ class PathPlanning():
     
     def augment_path(self, draw=True):
         exit_points = self.int_out + self.ra_out
-        exit_points = np.array([self.get_coord(x) for x in exit_points])
+        exit_points = np.array([self.get_xy(x) for x in exit_points])
         path_exit_points = []
         path_exit_point_idx = []
         #get all the points the path intersects with the exit_points
@@ -305,7 +274,7 @@ class PathPlanning():
                 path_exit_points.append(p)
                 path_exit_point_idx.append(index_min_dist)
                 if draw:
-                    cv.circle(self.map, m2pix(p), 20, (0,150,0), 5)
+                    cv.circle(self.map, p2cv(p), 20, (0,150,0), 5)
         path_exit_point_idx = np.array(path_exit_point_idx)
         #reorder points by idx
         exit_points = []
@@ -334,7 +303,7 @@ class PathPlanning():
                 path_event_points_idx.append(index_min_dist)
                 path_event_types.append(self.event_types[i])
                 if draw:
-                    cv.circle(self.map, m2pix(p), 20, (0,255,0), 5)
+                    cv.circle(self.map, p2cv(p), 20, (0,255,0), 5)
     
         path_event_points_idx = np.array(path_event_points_idx)
         #reorder
@@ -366,14 +335,14 @@ class PathPlanning():
                 path_event_path_ahead.append(path_ahead)
                 if draw:
                     for p in path_ahead:
-                        cv.circle(self.map, m2pix(p), 10, (200,150,0), 5)
+                        cv.circle(self.map, p2cv(p), 10, (200,150,0), 5)
             elif t.startswith('junction') or t.startswith('highway'):
                 assert len(self.path) > 0
                 path_ahead = self.path[self.path_event_points_idx[i]:min(self.path_event_points_idx[i]+140, len(self.path))]
                 path_event_path_ahead.append(path_ahead)
                 if draw:
                     for p in path_ahead:
-                        cv.circle(self.map, m2pix(p), 10, (200,150,0), 5)
+                        cv.circle(self.map, p2cv(p), 10, (200,150,0), 5)
         
             else:
                 path_event_path_ahead.append(None)
@@ -400,11 +369,8 @@ class PathPlanning():
             src = list_of_nodes[i]
             tgt = list_of_nodes[i+1]
             self.compute_shortest_path(source=src, target=tgt, step_length=step_length)
-            #now the local path is computed in self.path
-            #remove first element of self.path
-            self.path = self.path[1:]
-            #we need to add the local path to the complete path
-            complete_path = np.concatenate((complete_path, self.path))
+            self.path = self.path[1:] #remove first element of self.path
+            complete_path = np.concatenate((complete_path, self.path)) 
         self.path = complete_path
 
     def get_path_ahead(self, index, look_ahead=100):
@@ -443,11 +409,8 @@ class PathPlanning():
             length += np.hypot(x2-x1,y2-y1) 
         return length
 
-    def get_coord(self, node):
-        x = self.nodes_data[node]['x']
-        y = self.nodes_data[node]['y']
-        p = np.array([x,y])
-        return p
+    def get_xy(self, node):
+        return np.array([self.nodes_data[node]['x'], self.nodes_data[node]['y']])
     
     def get_path(self):
         return self.path
@@ -500,22 +463,21 @@ class PathPlanning():
     def draw_path(self):
         # draw nodes
         for node in self.list_of_nodes:
-            p = self.get_coord(node) #change to r coordinate
-            cv.circle(self.map, m2pix(p), 5, (0, 0, 255), -1)
-            #add node number
-            cv.putText(self.map, str(node), m2pix(p), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            p = p2cv(self.get_xy(node))
+            cv.circle(self.map, p, 5, (0, 0, 255), -1) # circle on node position
+            cv.putText(self.map, str(node), p, cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) # draw node name
 
-        # draw edges
-        for edge in self.list_of_edges:
-            p1 = self.get_coord(edge[0])
-            p2 = self.get_coord(edge[1])
-            #cv.line(self.map, m2pix(p1), m2pix(p2), (0, 255, 255), 2)
+        # # draw edges
+        # for edge in self.list_of_edges:
+        #     p1 = self.get_xy(edge[0])
+        #     p2 = self.get_xy(edge[1])
+        #     cv.line(self.map, p2cv(p1), p2cv(p2), (0, 255, 255), 2)
 
         # draw all points in given path
         for point in self.route_list:
             x,y,_ = point
             p = np.array([x,y])
-            cv.circle(self.map, m2pix(p), 5, (255, 0, 0), 1)
+            cv.circle(self.map, p2cv(p), 5, (255, 0, 0), 1)
 
         # draw trajectory
         cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=4, lineType=cv.LINE_AA)

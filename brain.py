@@ -1025,8 +1025,8 @@ class Brain:
             park_state = LOCALIZING_PARKING_SPOT
             #find park type with position
             park_pos = self.next_event.point
-            s_pos = np.array(self.pp.get_coord('177'))
-            t_pos = np.array(self.pp.get_coord('162'))
+            s_pos = np.array(self.pp.get_xy('177'))
+            t_pos = np.array(self.pp.get_xy('162'))
             d_s = norm(park_pos - s_pos) #distances from the s parking spot
             d_t = norm(park_pos - t_pos) #distances from the t parking spot
             if d_s < d_t and d_s < 0.2: park_type = S_PARK
@@ -1438,7 +1438,7 @@ class Brain:
 
             print(f'Closest node: {closest_node}, dist={dist_closest:.2f}')
             print(f'Car pos= {(self.car.x_est, self.car.y_est)}')
-            print(f'coords = {self.pp.get_coord(closest_node)}')
+            print(f'coords = {self.pp.get_xy(closest_node)}')
             if closest_node in RB_NODES_LEFT_LANE or closest_node in RB_NODES_RIGHT_LANE:
                 obstacle = ROADBLOCK
 
