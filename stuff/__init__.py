@@ -2,60 +2,7 @@
 #!/usr/bin/python3
 
 import cv2 as cv, numpy as np
-
-# common definitions for the project
-
-YAW_GLOBAL_OFFSET = 0.0#np.deg2rad(-5)
-
-START_X = 8.509 # 0.2
-START_Y = 2.016# 14.8
-
-GPS_DELAY = 0.45 # [s] delay for gps message to arrive
-ENCODER_POS_FREQ = 100.0 # [Hz] frequency of encoder position messages
-GPS_FREQ = 10.0 # [Hz] frequency of gps messages
-BUFFER_PAST_MEASUREMENTS_LENGTH = int(round(GPS_DELAY * ENCODER_POS_FREQ))
-
-# Vehicle driving parameters
-MIN_SPEED = -0.3                    # [m/s]     minimum speed
-MAX_SPEED = 2.5                     # [m/s]     maximum speed
-MAX_ACCEL = 5.5                     # [m/ss]    maximum accel
-MAX_STEER = 28.0                    # [deg]     maximum steering angle
-
-# Vehicle parameters
-CM2WB = 0.22                        # [m]       distance from center of mass to wheel base
-LENGTH = 0.45  			            # [m]       car body length 
-WIDTH = 0.18   			            # [m]       car body width 0.18, 0.2
-BACKTOWHEEL = 0.10  		        # [m]       distance of the wheel and the car body
-WHEEL_LEN = 0.03  			        # [m]       wheel raduis
-WHEEL_WIDTH = 0.03  		        # [m]       wheel thickness
-WB = 0.26  			                # [m]       wheelbase
-
-# Camera parameters
-FRAME_WIDTH = 320#640           # [pix]     frame width
-FRAME_HEIGHT = 240#480          # [pix]     frame height
-# position and orientation wrt the car frame
-CAM_X = 0.0                 # [m]
-CAM_Y = 0.0                 # [m]
-CAM_Z = 0.2                 # [m]
-CAM_ROLL = 0.0              # [rad]
-CAM_PITCH = np.deg2rad(20)  # [rad]
-CAM_YAW =  0.0              # [rad]
-CAM_FOV = 1.085594795       # [rad]
-CAM_F = 1.0                 # []        focal length
-# scaling factors
-CAM_Sx = 10.0               # [pix/m]
-CAM_Sy = 10.0               # [pix/m]
-CAM_Ox = 10.0               # [pix]
-CAM_Oy = 10.0               # [pix]
-CAM_K = np.array([[CAM_F*CAM_Sx,      0.0,            CAM_Ox],
-                  [ 0.0,              CAM_F*CAM_Sy,   CAM_Oy],
-                  [ 0.0,              0.0,            1.0]])
-# Estimator parameters
-EST_INIT_X      = 3.0               # [m]
-EST_INIT_Y      = 3.0               # [m]
-EST_INIT_YAW    = 0.0               # [rad] 
-
-EKF_STEPS_BEFORE_TRUST = 10 #10 is fine, 15 is safe
+from stuff.names_and_constants import *
 
 # HELPER FUNCTIONS
 
@@ -70,14 +17,6 @@ class Pose:
 def diff_angle(angle1, angle2):
     return np.arctan2(np.sin(angle1-angle2), np.cos(angle1-angle2))
 
-MAP_H_M = 13.6 # map height in meters, should match with Simulator/src/models_pkg/track/model.sdf
-MAP_HW_RATIO = 1.0/0.66323 # 20.5
-MAP_W_M = MAP_H_M*MAP_HW_RATIO # map width in meters
-K_BIG = 19897/MAP_H_M
-K_MEDIUM = 12011/MAP_H_M
-K_SMALL = 8107/MAP_H_M
-K_VERYSMALL = 3541/MAP_H_M
-
 def m2pix(m, k=K_VERYSMALL): #meters to pixel
     return np.int32(m*k)
 
@@ -87,6 +26,23 @@ def pix2m(pix, k=K_VERYSMALL): #pixel to meters
 def xy2cv(x, y, k=K_VERYSMALL):
     x,y = m2pix(x,k), m2pix(y,k)
     return (int(x), int(y))
+
+def load_graph():
+    import networkx
+    from os.path import join, exists, dirname
+    graph_path = join(dirname(__file__), 'final_graph.graphml')
+    assert exists(graph_path), f'graph file not found: {graph_path}'
+    graph = networkx.read_graphml(graph_path)
+    return graph
+
+def load_map(map_name=VERY_SMALL):
+    if map_name == BIG: mp, k = MAP_BIG_PATH, K_BIG
+    elif map_name == MEDIUM: mp, k = MAP_MEDIUM_PATH, K_MEDIUM
+    elif map_name == SMALL: mp, k = MAP_SMALL_PATH, K_SMALL
+    elif map_name == VERY_SMALL: mp, k = MAP_VERY_SMALL_PATH, K_VERYSMALL
+    else: raise ValueError(f'invalid map name: {map_name}, possible values: BIG, MEDIUM, SMALL, VERY_SMALL')
+    m = cv.flip(cv.imread(mp), 0) #flip image vertically
+    return m, k
 
 #function to draw the car on the map
 def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):

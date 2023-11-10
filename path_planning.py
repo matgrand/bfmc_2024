@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-import networkx as nx, numpy as np, cv2 as cv
+import networkx as nx, numpy as np, cv2 as cv, os
 from time import time, sleep
 from pyclothoids import Clothoid
 from stuff import *
-from names_and_constants import *
+from stuff.names_and_constants import *
 from os.path import join, exists
 
 SHOW_IMGS = False
@@ -25,9 +25,11 @@ class PathPlanning():
         self.prev_index = 0
 
         # read graph
-        graph_path = 'data/Competition_track.graphml'
-        assert exists(graph_path), f'Graph file {graph_path} does not exist'
-        self.G = nx.read_graphml('data/Competition_track.graphml')
+        this_file = os.path.dirname(__file__) #NOTE: keep this directory structure
+        map_path = join(this_file, 'Simulator/src/models_pkg/track/materials/textures/2024_VerySmall.png')
+        assert exists(map_path), f'Map file {map_path} does not exist'
+
+        self.G = load_graph() # load the map graph
         # initialize route subgraph and list for interpolation
         self.route_graph = nx.DiGraph()
         self.route_list = []
@@ -36,44 +38,14 @@ class PathPlanning():
         self.nodes_data = self.G.nodes.data()
         self.edges_data = self.G.edges.data()
 
+        self.int_mid = np.loadtxt(INT_MID_PATH, dtype=str) # mid intersection nodes
+        self.int_in = np.loadtxt(INT_IN_PATH, dtype=str) # intersecion entry nodes
+        self.int_out = np.loadtxt(INT_OUT_PATH, dtype=str) # intersecion exit nodes
+        self.ra_mid = np.loadtxt(RA_MID_PATH, dtype=str) # mid roundabout nodes
+        self.ra_in = np.loadtxt(RA_IN_PATH, dtype=str) # roundabout entry nodes
+        self.ra_out = np.loadtxt(RA_OUT_PATH, dtype=str) # roundabout exit nodes
 
-        # define intersection central nodes
-        #self.intersection_cen = ['347', '37', '39', '38', '11', '29', '30', '28', '371', '84', '9', '20', '20', '82', '75', '74', '83', '312', '315', '65', '468', '10', '64', '57', '56', '66', '73', '424', '48', '47', '46']
-        self.intersection_cen = ['468','12','37', '39', '38', '11', '29', '30', '28', '84', '9','19', '20', '21', '82', '75', '74', '83', '312', '315', '65', '10', '64', '57', '56','55', '66', '73', '48', '47', '46']
-
-        # define intersecion entrance nodes
-        self.intersection_in = [77,45,54,50,41,79,374,52,43,81,36,4,68,2,34,70,6,32,72,59,15,16,27,14,25,18,61,23,63]
-        self.intersection_in = [str(i) for i in self.intersection_in]
-
-        # define intersecion exit nodes
-        self.intersection_out = [76,78,80,40,42,44,49,104,53,67,69,71,1,3,5,7,8,31,33,35,22,24,26,13,17,58,60,62]
-        self.intersection_out = [str(i) for i in self.intersection_out]
-
-        # define left turns tuples
-        #self.left_turns = [(45,42),(43,40),(54,51),(36,33),(34,31),(6,3),(2,7),(2,8),(4,1),(70,67),(72,69),(27,24),(25,22),(16,13),(61,58),(63,60)]
-
-        #define crosswalks 
-        self.crosswalk = [92,96,276,295,170,266,177,162] #note: parking spots are included too (177,162)
-        self.crosswalk = [str(i) for i in self.crosswalk]
-
-        # define roundabout nodes
-        self.ra = [267,268,269,270,271,302,303,304,305,306,307]
-        self.ra = [str(i) for i in self.ra]
-
-        self.ra_enter = [301,342,230] #[267,302,305]
-        self.ra_enter = [str(i) for i in self.ra_enter]
-
-        self.ra_exit = [272,231,343] # [271,304,306]
-        self.ra_exit = [str(i) for i in self.ra_exit]
-
-        self.junctions = [467,314]
-        self.junctions = [str(i) for i in self.junctions]
-
-        self.forbidden_nodes = self.intersection_cen + self.intersection_in + self.intersection_out + self.crosswalk + self.ra + self.ra_enter + self.ra_exit + self.junctions
-        
-        self.no_yaw_calibration_nodes = [str(i) for i in [340,341,342,464,465,466,467]]
-
-        # self.near_crosswalk_nodes = [str(i) for i in [67,95,80,92,96,295,296,276,277,]]
+        self.forbidden_nodes = self.int_mid + self.int_in + self.int_out + self.ra_mid + self.ra_in + self.ra_out 
 
         #event points
         self.event_points = np.load('data/event_points.npy') #created in R coord
@@ -110,7 +82,7 @@ class PathPlanning():
         self.map = map_img
 
     def roundabout_navigation(self, prev_node, curr_node, next_node):
-        while next_node in self.ra:
+        while next_node in self.ra_mid:
             prev_node = curr_node
             curr_node = next_node
             if curr_node != self.target:
@@ -127,8 +99,8 @@ class PathPlanning():
             pn = self.get_coord(next_node)
             xn,yn = pn[0],pn[1]
 
-            if curr_node in self.ra_enter:
-                if not(prev_node in self.ra):
+            if curr_node in self.ra_in:
+                if not(prev_node in self.ra_mid):
                     dx = xn - xp
                     dy = yn - yp
                     self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
@@ -139,8 +111,8 @@ class PathPlanning():
                         dx = xn - xp
                         dy = yn - yp
                         self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-            elif curr_node in self.ra_exit:
-                if next_node in self.ra:
+            elif curr_node in self.ra_out:
+                if next_node in self.ra_mid:
                     # remain inside roundabout
                     if curr_node == '271':
                         continue
@@ -221,11 +193,11 @@ class PathPlanning():
             #print("prev_node is",prev_node,"(",xp,yp,")")
             #print("*************************\n")
             
-            curr_is_junction = curr_node in self.intersection_cen#len(adj_nodes) > 1
-            next_is_intersection = next_node in self.intersection_cen#len(next_adj_nodes) > 1
-            prev_is_intersection = prev_node in self.intersection_cen#len(prev_adj_nodes) > 1
-            next_is_roundabout_enter = next_node in self.ra_enter
-            curr_in_roundabout = curr_node in self.ra
+            curr_is_junction = curr_node in self.int_mid#len(adj_nodes) > 1
+            next_is_intersection = next_node in self.int_mid#len(next_adj_nodes) > 1
+            prev_is_intersection = prev_node in self.int_mid#len(prev_adj_nodes) > 1
+            next_is_roundabout_enter = next_node in self.ra_in
+            curr_in_roundabout = curr_node in self.ra_mid
             #print(f"CURR: {curr_node}, NEXT: {next_node}, PREV: {prev_node}")
             # ****** ROUNDABOUT NAVIGATION ******
             if next_is_roundabout_enter:
@@ -318,7 +290,7 @@ class PathPlanning():
         return self.path
     
     def augment_path(self, draw=True):
-        exit_points = self.intersection_out + self.ra_exit
+        exit_points = self.int_out + self.ra_out
         exit_points = np.array([self.get_coord(x) for x in exit_points])
         path_exit_points = []
         path_exit_point_idx = []
@@ -521,7 +493,7 @@ class PathPlanning():
             #     print(f'Duplicate point: {x}, {y}, index {i}')
             prev_x = x
             prev_y = y
-        
+
         path = np.array(path, dtype=np.float32)
         return path
 
