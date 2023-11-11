@@ -47,6 +47,11 @@ def load_map(map_name=VERY_SMALL):
     m = cv.flip(cv.imread(mp), 0) #flip image vertically
     return m, k
 
+def create_window(name, size=(1920,1080)):
+    cv.namedWindow(name, cv.WINDOW_NORMAL)
+    cv.resizeWindow(name, size[0], size[1])
+    cv.moveWindow(name, 2560, 0)
+
 #function to draw the car on the map
 def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
     x, y, ψ = cp.x, cp.y, cp.ψ
