@@ -232,10 +232,6 @@
       <data key="d0">5.44</data>
       <data key="d1">0.6799999999999997</data>
     </node>
-    <node id="61">
-      <data key="d0">4.93</data>
-      <data key="d1">0.8699999999999992</data>
-    </node>
     <node id="62">
       <data key="d0">4.93</data>
       <data key="d1">0.8699999999999992</data>
@@ -1416,37 +1412,69 @@
       <data key="d0">16.23082089552239</data>
       <data key="d1">9.479906253854692</data>
     </node>
-    <node id="613">
-      <data key="d0">16.296</data>
-      <data key="d1">9.934</data>
-    </node>
-    <node id="615">
-      <data key="d0">16.645</data>
-      <data key="d1">10.283</data>
+    <node id="600">
+      <data key="d0">16.694</data>
+      <data key="d1">10.530</data>
     </node>
     <node id="601">
       <data key="d0">16.645</data>
       <data key="d1">10.777</data>
     </node>
+    <node id="602">
+      <data key="d0">16.505</data>
+      <data key="d1">10.986</data>
+    </node>
     <node id="603">
       <data key="d0">16.296</data>
       <data key="d1">11.126</data>
+    </node>
+    <node id="604">
+      <data key="d0">16.049</data>
+      <data key="d1">11.175</data>
     </node>
     <node id="605">
       <data key="d0">15.802</data>
       <data key="d1">11.126</data>
     </node>
+    <node id="606">
+      <data key="d0">15.593</data>
+      <data key="d1">10.986</data>
+    </node>
     <node id="607">
       <data key="d0">15.453</data>
       <data key="d1">10.777</data>
+    </node>
+    <node id="608">
+      <data key="d0">15.404</data>
+      <data key="d1">10.530</data>
     </node>
     <node id="609">
       <data key="d0">15.453</data>
       <data key="d1">10.283</data>
     </node>
+    <node id="610">
+      <data key="d0">15.593</data>
+      <data key="d1">10.074</data>
+    </node>
     <node id="611">
       <data key="d0">15.802</data>
       <data key="d1">9.934</data>
+    </node>
+    <node id="612">
+      <data key="d0">16.049</data>
+      <data key="d1">9.885</data>
+    </node>
+    <node id="613">
+      <data key="d0">16.296</data>
+      <data key="d1">9.934</data>
+    </node>
+    <node id="614">
+      <data key="d0">16.505</data>
+      <data key="d1">10.074</data>
+    </node>
+    <node id="615">
+      <data key="d0">16.645</data>
+      <data key="d1">10.283</data>
     </node>
     <node id="370">
       <data key="d0">17.085975083261378</data>
@@ -3135,37 +3163,61 @@
     <edge source="357" target="613">
       <data key="d2">False</data>
     </edge>
-    <edge source="613" target="615">
+    <edge source="614" target="615">
       <data key="d2">False</data>
     </edge>
     <edge source="615" target="302">
       <data key="d2">False</data>
     </edge>
-    <edge source="615" target="601">
+    <edge source="615" target="600">
       <data key="d2">False</data>
     </edge>
-    <edge source="601" target="603">
+    <edge source="600" target="601">
       <data key="d2">False</data>
     </edge>
-    <edge source="603" target="605">
+    <edge source="601" target="602">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="602" target="603">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="603" target="604">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="604" target="605">
       <data key="d2">False</data>
     </edge>
     <edge source="603" target="332">
       <data key="d2">False</data>
     </edge>
-    <edge source="605" target="607">
+    <edge source="605" target="606">
       <data key="d2">False</data>
     </edge>
-    <edge source="607" target="609">
+    <edge source="606" target="607">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="607" target="608">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="608" target="609">
       <data key="d2">False</data>
     </edge>
     <edge source="607" target="259">
       <data key="d2">False</data>
     </edge>
-    <edge source="609" target="611">
+    <edge source="609" target="610">
       <data key="d2">False</data>
     </edge>
-    <edge source="611" target="613">
+    <edge source="610" target="611">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="611" target="612">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="612" target="613">
+      <data key="d2">False</data>
+    </edge>
+    <edge source="613" target="614">
       <data key="d2">False</data>
     </edge>
     <edge source="611" target="372">
