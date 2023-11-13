@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import networkx as nx, numpy as np, cv2 as cv, os
+import networkx, numpy as np, cv2 as cv, os
 from time import time, sleep
 from pyclothoids import Clothoid
 from stuff import *
@@ -16,17 +16,14 @@ class PathPlanning():
 
         # initialize path
         self.path = []
-        self.navigator = []# set of instruction for the navigator
-        self.path_data = [] #additional data for the path (e.g. curvature, 
         self.step_length = PATH_STEP_LENGTH # step length for interpolation
 
         # previous index of the closest point on the path to the vehicle
         self.prev_index = 0
 
         self.G = load_graph() # load the map graph
-        # initialize route subgraph and list for interpolation
-        self.route_graph = nx.DiGraph()
-        self.route_list = []
+
+        self.route_list = [] # list of nodes to visit
 
         self.nodes_data = self.G.nodes.data()
         self.edges_data = self.G.edges.data()
@@ -38,6 +35,8 @@ class PathPlanning():
         self.ra_in =    list(np.loadtxt(RA_IN_PATH, dtype=str)) # roundabout entry nodes
         self.ra_out =   list(np.loadtxt(RA_OUT_PATH, dtype=str)) # roundabout exit nodes
         self.highway_nodes = list(np.loadtxt(HW_PATH, dtype=str)) # highway nodes
+        
+        self.skip_nodes = [str(i) for i in [262,235,195,196,281,216,263,234]] # 469? # nodes to skip in route generation
 
         self.forbidden_nodes = self.int_mid + self.int_in + self.int_out + self.ra_mid + self.ra_in + self.ra_out 
 
@@ -64,145 +63,30 @@ class PathPlanning():
         self.all_start_nodes_coords = np.array([self.get_xy(node) for node in self.all_start_nodes])
 
         self.map, _ = load_map()
-
-    def roundabout_navigation(self, prev_node, curr_node, next_node):
-        while next_node in self.ra_mid:
-            prev_node = curr_node
-            curr_node = next_node
-            if curr_node != self.target:
-                next_node = list(self.route_graph.successors(curr_node))[0]
-            else:
-                next_node = None
-                break
-                
-            #print("inside roundabout: ", curr_node)
-            xp,yp = self.get_xy(prev_node)
-            xc,yc = self.get_xy(curr_node)
-            xn,yn = self.get_xy(next_node)
-
-            if curr_node in self.ra_in:
-                if not(prev_node in self.ra_mid):
-                    dx = xn - xp
-                    dy = yn - yp
-                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-                else:
-                    dx = xn - xp
-                    dy = yn - yp
-                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-            elif curr_node in self.ra_out:
-                if next_node in self.ra_mid: # if next node is in the roundabout
-                    dx = xn - xp
-                    dy = yn - yp
-                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-                else:
-                    dx = xn - xp
-                    dy = yn - yp
-                    self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-            else:
-                dx = xn - xp
-                dy = yn - yp
-                self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-
-        prev_node = curr_node
-        curr_node = next_node
-        if curr_node != self.target:
-            next_node = list(self.route_graph.successors(curr_node))[0]
-        else:
-            next_node = None
-        self.navigator.append("exit roundabout at "+curr_node)
-        self.navigator.append("go straight")
-        return prev_node, curr_node, next_node
     
-    def intersection_navigation(self, prev_node, curr_node, next_node):
-        prev_node = curr_node
-        curr_node = next_node
-        if curr_node != self.target:
-            next_node = list(self.route_graph.successors(curr_node))[0]
-        else:
-            next_node = None
-            return prev_node, curr_node, next_node
-        
-        prev_node = curr_node
-        curr_node = next_node
-        if curr_node != self.target:
-            next_node = list(self.route_graph.successors(curr_node))[0]
-        else:
-            next_node = None
-        
-        self.navigator.append("exit intersection at " + curr_node)
-        self.navigator.append("go straight")
-        return prev_node, curr_node, next_node
-
-    def compute_route_list(self):
-        ''' Augments the route stored in self.route_graph'''
-        curr_node = self.source
-        prev_node = curr_node
-        next_node = list(self.route_graph.successors(curr_node))[0]
-
-        #reset route list
-        self.route_list = []
-        self.navigator.append("go straight")
-        while curr_node != self.target:
-            xp,yp = self.get_xy(prev_node) # previous node position
-            xc,yc = self.get_xy(curr_node) # current node position
-            xn,yn = self.get_xy(next_node)            
-            curr_is_junction = curr_node in self.int_mid#len(adj_nodes) > 1
-            next_is_intersection = next_node in self.int_mid#len(next_adj_nodes) > 1
-            prev_is_intersection = prev_node in self.int_mid#len(prev_adj_nodes) > 1
-            next_is_roundabout_enter = next_node in self.ra_in
-            curr_in_roundabout = curr_node in self.ra_mid
-            #print(f"CURR: {curr_node}, NEXT: {next_node}, PREV: {prev_node}")
-            # ****** ROUNDABOUT NAVIGATION ******
-            ladd = 0.001
-            if next_is_roundabout_enter:
-                dx = xc-xp
-                dy = yc-yp
-                self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-                # add a further node
-                dx = xc - xp
-                dy = yc - yp
-                self.route_list.append((xc+ladd*dx,yc+ladd*dy,np.rad2deg(np.arctan2(dy,dx))))
-                # enter the roundabout
-                self.navigator.append("enter roundabout at " + curr_node)
-                prev_node, curr_node, next_node = self.roundabout_navigation(prev_node, curr_node, next_node)
-                continue               
-            elif next_is_intersection:
-                dx = xc - xp
-                dy = yc - yp
-                self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-                # add a further node
-                dx = xc - xp
-                dy = yc - yp
-                self.route_list.append((xc+ladd*dx,yc+ladd*dy,np.rad2deg(np.arctan2(dy,dx))))
-                # enter the intersection
-                self.navigator.append("enter intersection at " + curr_node)
-                prev_node, curr_node, next_node = self.intersection_navigation(prev_node, curr_node, next_node)
-                continue
-            elif prev_is_intersection:
-                # add a further node
-                dx = xn - xc
-                dy = yn - yc
-                self.route_list.append((xc-ladd*dx,yc-ladd*dy,np.rad2deg(np.arctan2(dy,dx))))
-                # and add the exit node
-                dx = xn - xc
-                dy = yn - yc
-                self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-            else:
-                dx = xn - xp
-                dy = yn - yp
-                self.route_list.append((xc,yc,np.rad2deg(np.arctan2(dy,dx))))
-            
-            prev_node = curr_node
-            curr_node = next_node
-            if curr_node != self.target:
-                next_node = list(self.route_graph.successors(curr_node))[0]
-            else:
-                # You arrived at the END
-                dx = xn - xp
-                dy = yn - yp
-                self.route_list.append((xn,yn,np.rad2deg(np.arctan2(dy,dx))))
-                next_node = None
-        self.navigator.append("stop")
+    def compute_route_list(self, route_graph:networkx.DiGraph):
+        ''' Augments the route stored rin oute_graph'''
+        self.route_list = [] 
+        for n in route_graph.nodes():
+            x,y = self.get_xy(n)
+            pred = list(route_graph.predecessors(n))
+            succ = list(route_graph.successors(n))
+            pv = pred[0] if len(pred) > 0 else None # previous node
+            nn = succ[0] if len(succ) > 0 else None # next node
+            assert not (pv is None and nn is None), f'node {n} has no predecessors or successors'
+            if pv is None: self.route_list.append((x,y,self.get_dir(n,nn))) #first node
+            elif nn is None: self.route_list.append((x,y,self.get_dir(pv,n))) #last node
+            elif n in self.skip_nodes: pass # skip nodes
+            else: #general case
+                if n in self.int_in or n in self.ra_in: # int/ra entry -> prev edge
+                    self.route_list.append((x,y,self.get_dir(pv,n)))
+                elif n in self.int_out or n in self.ra_out: # int/ra exit -> next edge
+                    self.route_list.append((x,y,self.get_dir(n,nn)))
+                elif n in self.ra_mid:
+                    if pv in self.ra_in or nn in self.ra_out: pass # ra near ends -> skip
+                    else: self.route_list.append((x,y,self.get_dir(pv,nn))) # general case -> avg edge
+                elif n in self.int_mid: pass # int mid -> skip
+                else: self.route_list.append((x,y,self.get_dir(pv,nn))) # general case -> avg edge
 
     def compute_shortest_path(self, source=None, target=None, step_length=0.01):
         ''' Generates the shortest path between source and target nodes using Clothoid interpolation '''
@@ -214,22 +98,21 @@ class PathPlanning():
         route_nx = []
 
         # generate the shortest route between source and target      
-        route_nx = list(nx.shortest_path(self.G, source=src, target=tgt)) 
+        route_nx = list(networkx.shortest_path(self.G, source=src, target=tgt)) 
         # generate a route subgraph       
-        self.route_graph = nx.DiGraph() #reset the graph
-        self.route_graph.add_nodes_from(route_nx)
-        for i in range(len(route_nx)-1):
-            self.route_graph.add_edges_from( [ (route_nx[i], route_nx[i+1], self.G.get_edge_data(route_nx[i],route_nx[i+1])) ] )         # augment route with intersections and roundabouts
-        # expand route node and update navigation instructions
-        self.compute_route_list()
+        route_graph = networkx.DiGraph() #reset the graph
+        route_graph.add_nodes_from(route_nx) # add nodes
+        for i in range(len(route_nx)-1): # add edges
+            route_graph.add_edges_from( [ (route_nx[i], route_nx[i+1], self.G.get_edge_data(route_nx[i],route_nx[i+1]))])
+        self.compute_route_list(route_graph)
         
         #remove duplicates
         prev_x, prev_y, prev_yaw = 0,0,0
-        for i, (x,y,yaw) in enumerate(self.route_list):
+        for i, (x,y,α) in enumerate(self.route_list):
             if np.linalg.norm(np.array([x,y]) - np.array([prev_x,prev_y])) < 0.001:
                 #remove element from list
                 self.route_list.pop(i)
-            prev_x, prev_y, prev_yaw = x,y,yaw
+            prev_x, prev_y, prev_yaw = x,y,α
             
         # interpolate the route of nodes
         self.path = PathPlanning.interpolate_route(self.route_list, step_length)
@@ -335,9 +218,7 @@ class PathPlanning():
         return events
 
     def generate_path_passing_through(self, list_of_nodes, step_length=0.01):
-        """
-        Extend the path generation from source-target to a sequence of nodes/locations
-        """
+        '''Extend the path generation from source-target to a sequence of nodes/locations'''
         assert len(list_of_nodes) >= 2, "List of nodes must have at least 2 nodes"
         print("Generating path passing through: ", list_of_nodes)
         src = list_of_nodes[0]
@@ -356,25 +237,12 @@ class PathPlanning():
         return np.array(self.path[index:min(index + look_ahead, len(self.path)-1), :])
 
     def get_closest_stop_line(self, nx, ny, draw=False):
-        """
-        Returns the closest stop point to the given point
-        """
+        ''' Returns the closest stop point to the given point '''
         index_closest = np.argmin(np.hypot(nx - self.stop_points[:,0], ny - self.stop_points[:,1]))
         print(f'Closest stop point is {self.stop_points[index_closest, :]}, Point is {nx, ny}')
         #draw a circle around the closest stop point
         if draw: cv.circle(self.map, m2pix(self.stop_points[index_closest]), 8, (0, 255, 0), 4)
         return self.stop_points[index_closest, 0], self.stop_points[index_closest, 1]
-
-    def print_path_info(self):
-        prev_state = None
-        prev_next_state = None
-        for i in range(len(self.path_data)-1):
-            curr_state = self.path_data[i][0]
-            next_state = self.path_data[i][1]
-            if curr_state != prev_state or next_state != prev_next_state:
-                print(f'{i}: {self.path_data[i]}')
-            prev_state = curr_state
-            prev_next_state = next_state
 
     def get_length(self, path=None):
         ''' Calculates the length of the trajectory '''
@@ -390,12 +258,14 @@ class PathPlanning():
     def get_xy(self, node):
         return np.array([self.nodes_data[node]['x'], self.nodes_data[node]['y']])
     
+    def get_dir(self, n1, n2):
+        ''' Returns the direction of the edge going from n1 to n2 '''
+        x1,y1 = self.get_xy(n1)
+        x2,y2 = self.get_xy(n2)
+        return np.arctan2(y2-y1, x2-x1)
+
     def get_path(self):
         return self.path
-    
-    def print_navigation_instructions(self):
-        for i,instruction in enumerate(self.navigator):
-            print(i+1,") ",instruction)
     
     def compute_path(xi, yi, thi, xf, yf, thf, step_length):
         clothoid_path = Clothoid.G1Hermite(xi, yi, thi, xf, yf, thf)
@@ -411,8 +281,8 @@ class PathPlanning():
         for i in range(len(route)-1):
             xc,yc,thc = route[i]
             xn,yn,thn = route[i+1]
-            thc = np.deg2rad(thc)
-            thn = np.deg2rad(thn)
+            # thc = np.deg2rad(thc)
+            # thn = np.deg2rad(thn)
 
             #print("from (",xc,yc,thc,") to (",xn,yn,thn,")\n")
 
@@ -440,10 +310,10 @@ class PathPlanning():
 
     def draw_path(self):
         # draw nodes
-        for node in self.all_nodes:
-            p = p2cv(self.get_xy(node))
-            cv.circle(self.map, p, 5, (0, 0, 255), -1) # circle on node position
-            cv.putText(self.map, str(node), p, cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) # draw node name
+        # for node in self.all_nodes:
+        #     p = p2cv(self.get_xy(node))
+        #     cv.circle(self.map, p, 5, (0, 0, 255), -1) # circle on node position
+        #     cv.putText(self.map, str(node), p, cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) # draw node name
 
         # # draw edges
         # for edge in self.all_edges:
@@ -451,11 +321,12 @@ class PathPlanning():
         #     p2 = self.get_xy(edge[1])
         #     cv.line(self.map, p2cv(p1), p2cv(p2), (0, 255, 255), 2)
 
-        # draw all points in given path
-        for point in self.route_list:
-            x,y,_ = point
-            p = np.array([x,y])
-            cv.circle(self.map, p2cv(p), 5, (255, 0, 0), 1)
+        # # draw all points in given path
+        # for x,y,α in self.route_list:
+        #     cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 255), -1) # circle on node position
+        #     d = 0.25
+        #     nx, ny = x + d*np.cos(α), y + d*np.sin(α)
+        #     cv.arrowedLine(self.map, xy2cv(x,y), xy2cv(nx,ny), (255, 0, 255), 2)
 
         # draw trajectory
         cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=4, lineType=cv.LINE_AA)

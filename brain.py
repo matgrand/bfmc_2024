@@ -369,8 +369,7 @@ class Brain:
         curr_time = time()
         if self.conditions[TRUST_GPS]:
             #get closest node
-            curr_pos = np.array([self.car.x_est, self.car.y_est])
-            closest_node, distance = self.pp.get_closest_node(curr_pos)
+            closest_node, distance = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
             print(f'GPS converged, starting from node: {closest_node}, distance: {distance:.2f}')
             # sleep(3.0)
             self.checkpoints[self.checkpoint_idx] = closest_node
@@ -643,7 +642,7 @@ class Brain:
             alpha = self.detect.detect_yaw_stopline(self.car.frame, SHOW_IMGS and False) * 0.8
             print(f'alpha est: {np.rad2deg(alpha):.1f}')
             if APPLY_YAW_CORRECTION:
-                closest_node, dist_node = self.pp.get_closest_node(np.array([self.car.x, self.car.y]))
+                closest_node, _ = self.pp.get_closest_start_node(self.car.x, self.car.y)
                 if closest_node in self.pp.no_yaw_calibration_nodes:
                     pass
                 else:
@@ -957,10 +956,9 @@ class Brain:
         if substate == AR_WATING_FOR_GPS:
             curr_time = time()
             if self.conditions[TRUST_GPS]:
-                curr_pos = np.array([self.car.x_est, self.car.y_est])
                 self.env.publish_obstacle(ROADBLOCK, self.car.x_est, self.car.y_est)
                 self.curr_state.var3 = (AR_SWITCHING_LANE, True)
-                closest_node, distance = self.pp.get_closest_node(curr_pos)
+                closest_node, distance = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
                 print(f'GPS converged, node: {closest_node}, distance: {distance:.2f}')
                 if closest_node in RB_NODES_LEFT_LANE:
                     self.curr_state.var4 = True
@@ -1434,7 +1432,7 @@ class Brain:
                 obstacle = PEDESTRIAN
 
             #check for roadblock 
-            closest_node, dist_closest = self.pp.get_closest_node(np.array([self.car.x_est, self.car.y_est]))
+            closest_node, dist_closest = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
 
             print(f'Closest node: {closest_node}, dist={dist_closest:.2f}')
             print(f'Car pos= {(self.car.x_est, self.car.y_est)}')
@@ -1591,7 +1589,7 @@ class Brain:
         
         if self.conditions[TRUST_GPS]:
             est_pos = np.array([self.car.x_est, self.car.y_est])
-            closest_node, distance = self.pp.get_closest_node(est_pos)
+            closest_node, distance = self.pp.get_closest_start_node(est_pos[0], est_pos[1])
 
             #HIGHWAY
             self.conditions[HIGHWAY] = closest_node in self.pp.highway_nodes

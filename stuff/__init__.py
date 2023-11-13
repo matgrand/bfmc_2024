@@ -47,6 +47,10 @@ def load_map(map_name=VERY_SMALL):
     m = cv.flip(cv.imread(mp), 0) #flip image vertically
     return m, k
 
+def load_nodes(nodes_path): 
+    assert nodes_path in ALL_NODES_PATHS, f'invalid nodes path: {nodes_path}'
+    return np.loadtxt(nodes_path, dtype=str)
+
 def create_window(name, size=(1920,1080)):
     cv.namedWindow(name, cv.WINDOW_NORMAL)
     cv.resizeWindow(name, size[0], size[1])
