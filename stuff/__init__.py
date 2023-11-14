@@ -31,7 +31,7 @@ def p2cv(p, k=K_VERYSMALL): # point in the shape of np.array([x,y]) gets convert
     assert p.shape == (2,), f'p shape: {p.shape}'
     return xy2cv(p[0], p[1], k)
 
-def load_graph():
+def load_graph() -> networkx.Graph:
     from os.path import join, exists, dirname
     graph_path = join(dirname(__file__), 'final_graph.graphml')
     assert exists(graph_path), f'graph file not found: {graph_path}'

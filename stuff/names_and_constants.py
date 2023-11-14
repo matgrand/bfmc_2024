@@ -225,4 +225,4 @@ STOPLINES_PATH = join(dirname(__file__), 'stop_lines.txt')
 ALL_NODES_PATHS = [INT_IN_PATH, INT_OUT_PATH, INT_MID_PATH, RA_IN_PATH, RA_OUT_PATH, RA_MID_PATH, HW_PATH, STOPLINES_PATH]
 
 ################### PATH PLANING ###################
-PATH_STEP_LENGTH = 0.01 # [m] interpolation step length for the path
+PATH_STEP_LENGTH = 0.001 # [m] interpolation step length for the path
