@@ -17,7 +17,7 @@ else: #PI
     from control.helper_functions import *
 
 from PathPlanning4 import PathPlanning
-from controller3 import Controller
+from controller import Controller
 from controllerSP import ControllerSpeed
 from detection import Detection
 from brain import Brain

@@ -33,7 +33,6 @@ def rainbow_c(idx, n=RAINBOW_COLORS): # return a rainbow color
     c_float = colorsys.hsv_to_rgb(idx/n, 1.0, 1.0)
     return tuple([int(round(255*x)) for x in c_float])
 
-
 class Visualizer():
     # ===================================== INIT==========================================
     def __init__(self):
@@ -123,6 +122,8 @@ class Visualizer():
                 CANV_WIDTH /= 1.1
                 CANV_WIDTH = int(max(CANV_WIDTH, 320))
             elif key == ord('r'): # reset map
+                os.system('clear')
+                os.system('rosservice call /gazebo/reset_simulation')
                 self.map_img = self.clean_map.copy()
             
 if __name__ == '__main__':
@@ -132,3 +133,9 @@ if __name__ == '__main__':
     except rospy.ROSInterruptException:
         rospy.loginfo("Visualizer node terminated.")
         cv.destroyAllWindows()
+    except KeyboardInterrupt:
+        cv.destroyAllWindows()
+    except rospy.exceptions.ROSTimeMovedBackwardsException:
+        print('ROSException, keep calm and carry on')
+        pass
+

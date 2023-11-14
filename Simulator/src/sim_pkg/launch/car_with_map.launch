@@ -9,7 +9,6 @@
     <arg name="gui"          value="false"/>
   </include>
  
-  <node pkg="sim_pkg" type="delay.sh" args="5 sim_pkg bare_car.launch" name="car" output="screen"/>
-  <!-- <node pkg="example" name="visualizer" type="visualizer.py" output="screen"/> -->
+  <node pkg="sim_pkg" type="delay.sh" args="5 sim_pkg car.launch" name="car" output="screen"/>
 
   </launch>

@@ -15,7 +15,7 @@ else:
 
 from stuff import *
 from path_planning import PathPlanning
-from controller3 import Controller
+from controller import Controller
 from controllerSP import ControllerSpeed
 from detection import Detection
 from environmental_data_simulator import EnvironmentalData
@@ -1570,9 +1570,9 @@ class Brain:
 
     # UPDATE CONDITIONS
     def update_state(self):
-        """"
+        '''
         This will update the conditions at every iteration, it is called at the end of a self.run
-        """
+        '''
         #deque of past imgs
         print(f'UPDATE STATE')
         prev_dist = self.routines[UPDATE_STATE].var1 if self.routines[UPDATE_STATE].var1 is not None else self.car.encoder_distance
@@ -1649,10 +1649,10 @@ class Brain:
             self.routines[k].run()
 
     def activate_routines(self, routines_to_activate):
-        """
+        '''
         routines_to_activate are a list of strings (routines)
         ex: ['follow_lane', 'control_for_signs']
-        """
+        '''
         assert all([r in self.routines.keys() for r in routines_to_activate]), 'ERROR: activate_routines: routines_to_activate contains invalid routine'
         self.active_routines_names = []
         for k,r in self.routines.items():
@@ -1660,19 +1660,19 @@ class Brain:
             if r.active: self.active_routines_names.append(k)
     
     def add_routines(self, routines):
-        """
+        '''
         add routines to he active routines without overwriting the other
         ex: ['follow_lane', 'control_for_signs']
-        """    
+        '''    
         assert all([r in self.routines.keys() for r in routines]), 'ERROR: add_routines: routines_to_activate contains invalid routine'
         for k in routines:
             self.routines[k].active = True
 
     def switch_to_state(self, to_state, interrupt=False):
-        """
+        '''
         to_state is the string of the desired state to switch to
         ex: 'lane_following'
-        """
+        '''
         assert to_state in self.states, f'{to_state} is not a valid state'
         self.prev_state = self.curr_state
         self.curr_state = self.states[to_state]
@@ -1691,9 +1691,9 @@ class Brain:
         self.switch_to_state(self.prev_state.name)
     
     def go_to_next_event(self):
-        """
+        '''
         Switches to the next event on the path
-        """
+        '''
         self.prev_event = self.next_event
         if self.event_idx == len(self.events):
             #no more events, for now
@@ -1717,10 +1717,10 @@ class Brain:
             exit()
 
     def create_sequence_of_events(self, events):
-        """
+        '''
         events is a list of strings (events)
         ex: ['lane_following', 'control_for_signs']
-        """
+        '''
         to_ret = []
         for e in events:
             name = e[0]
@@ -1774,7 +1774,6 @@ class Brain:
         #convert self.past_frames to a list
         past_frames = list(self.past_frames)
         return past_frames[idx_start:idx_end]
-
 
     #DEBUG
     def error(self, error_msg):

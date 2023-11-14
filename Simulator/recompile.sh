@@ -20,3 +20,6 @@ echo export ROS_PACKAGE_PATH=\""$curr_path/src:\$ROS_PACKAGE_PATH"\" >> devel/se
 #you will have to do source devel/setup.bash for every new terminal you open and want to use the
 #simulator, or you can add the above two lines to your ~/.bashrc file so that it is automatically 
 #sourced everytime you open a new terminal
+
+echo "To automatically source the sim, add the following lines to your ~/.bashrc file"
+echo "source $curr_path/devel/setup.bash"

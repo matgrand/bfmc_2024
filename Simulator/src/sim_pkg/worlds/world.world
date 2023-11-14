@@ -60,6 +60,7 @@
       <cast_shadows>0</cast_shadows>
       <direction>0 0 -1</direction>
     </light>
+    
     <model name='track'>
       <static>1</static>
       <link name='link'>
@@ -67,7 +68,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>22.616 15.0</size>
+              <size>22.62 15.0</size>
             </plane>
           </geometry>
           <surface>
@@ -94,7 +95,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>22.616 15.0</size>
+              <size>22.62 15.0</size>
             </plane>
           </geometry>
           <material>
@@ -113,7 +114,7 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <pose frame=''>11.308 7.5 0 0 -0 0</pose>
+      <pose frame=''>11.3 7.5 0 0 -0 0</pose>
     </model>
   </world>
 </sdf>

@@ -14,7 +14,7 @@ SIMULATOR_FLAG = True
 import numpy as np
 from os.path import join, exists, dirname
 
-YAW_GLOBAL_OFFSET = 0.0#np.deg2rad(-5)
+YAW_GLOBAL_OFFSET = 0.0 if SIMULATOR_FLAG else np.deg2rad(-5) # [rad] IMU:yaw offset for true orientation of the map
 
 START_X = 8.509 # 0.2
 START_Y = 2.016# 14.8
@@ -52,12 +52,12 @@ CAM_YAW =  0.0              # [rad]
 CAM_FOV = 1.085594795       # [rad]
 CAM_F = 1.0                 # []        focal length
 # scaling factors
-CAM_Sx = 10.0               # [pix/m]
-CAM_Sy = 10.0               # [pix/m]
-CAM_Ox = 10.0               # [pix]
-CAM_Oy = 10.0               # [pix]
-CAM_K = np.array([[CAM_F*CAM_Sx,      0.0,            CAM_Ox],
-                  [ 0.0,              CAM_F*CAM_Sy,   CAM_Oy],
+CAM_SX = 10.0               # [pix/m]
+CAM_SY = 10.0               # [pix/m]
+CAM_OX = 10.0               # [pix]
+CAM_OY = 10.0               # [pix]
+CAM_K = np.array([[CAM_F*CAM_SX,      0.0,            CAM_OX],
+                  [ 0.0,              CAM_F*CAM_SY,   CAM_OY],
                   [ 0.0,              0.0,            1.0]])
 # Estimator parameters
 EST_INIT_X      = 3.0               # [m]
@@ -192,8 +192,8 @@ MEDIUM = 'medium'
 SMALL = 'small'
 VERY_SMALL = 'very_small'
 
-MAP_H_M = 13.6 # map height in meters, should match with Simulator/src/models_pkg/track/model.sdf
-MAP_HW_RATIO = 1.0/0.66323 # 20.5
+MAP_H_M = 15.00 #13.6 # map height in meters, should match with Simulator/src/models_pkg/track/model.sdf
+MAP_HW_RATIO = 1.0/0.66323 # 22.62
 MAP_W_M = MAP_H_M*MAP_HW_RATIO # map width in meters
 K_BIG = 19897/MAP_H_M
 K_MEDIUM = 12011/MAP_H_M
@@ -225,4 +225,17 @@ STOPLINES_PATH = join(dirname(__file__), 'stop_lines.txt')
 ALL_NODES_PATHS = [INT_IN_PATH, INT_OUT_PATH, INT_MID_PATH, RA_IN_PATH, RA_OUT_PATH, RA_MID_PATH, HW_PATH, STOPLINES_PATH]
 
 ################### PATH PLANING ###################
-PATH_STEP_LENGTH = 0.001 # [m] interpolation step length for the path
+PATH_STEP_LENGTH = 0.01 # [m] interpolation step length for the path
+
+
+################### SIMULATOR SPECIFIC ###################
+# simulator specific constants
+REALISTIC = False #if true, the simulator will try to mimic the real car, with actuation delays and dead times
+ENCODER_TIMER = 0.01 #frequency of encoder reading
+STEER_UPDATE_FREQ = 50.0 if REALISTIC else 150.0 #50#[Hz]
+SERVO_DEAD_TIME_DELAY = 0.15 if REALISTIC else 0.0 #0.15 #[s]
+MAX_SERVO_ANGULAR_VELOCITY = 2.8 if REALISTIC else 15.0 #3. #[rad/s]
+DELTA_ANGLE = np.rad2deg(MAX_SERVO_ANGULAR_VELOCITY) / STEER_UPDATE_FREQ
+MAX_STEER_COMMAND_FREQ = 50.0 # [Hz], If steer commands are sent at an higher freq they will be discarded
+MAX_STEER_SAMPLES = max(int((2*SERVO_DEAD_TIME_DELAY) * MAX_STEER_COMMAND_FREQ), 10) # max number of samples to store in the buffer
+
