@@ -11,8 +11,8 @@ class Car():
         # CAR POSITION
         self.x_true = START_X                   # [m]       true:x coordinate (used in simulation and SPARCS)
         self.y_true = START_Y                   # [m]       true:y coordinate (used in simulation and SPARCS)
-        self.x_gps = 0.0                        # [m]       GPS:x global coordinate
-        self.y_gps = 0.0                        # [m]       GPS:y global coordinate
+        self.x_gps = START_X                    # [m]       GPS:x global coordinate
+        self.y_gps = START_Y                    # [m]       GPS:y global coordinate
         # IMU           
         self.yaw_offset = YAW_GLOBAL_OFFSET     # [rad]     IMU:yaw offset
         self.roll = 0.0                         # [rad]     IMU:roll angle of the car
@@ -189,6 +189,12 @@ class Car():
         self.dist_loc = 0.0
         self.dist_loc_o = self.encoder_distance
 
+    def est_pose(self):
+        return Pose(self.x_est, self.y_est, self.yaw_est)
+    
+    def pose(self):
+        return Pose(self.x_true, self.y_true, self.yaw)
+    
     # STATIC METHODS
     def normalizeSpeed(val):       
         return np.clip(val, -MAX_SPEED, MAX_SPEED) 

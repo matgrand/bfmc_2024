@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    localization.msg
    pose.msg
+   environmental.msg
+   vehicles.msg
  )
 
  generate_messages(

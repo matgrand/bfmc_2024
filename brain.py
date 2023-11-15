@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from names_and_constants import SIMULATOR_FLAG 
+from stuff import *
 SHOW_IMGS = True
 
 import numpy as np
@@ -8,10 +8,10 @@ from time import time, sleep
 from numpy.linalg import norm
 from collections import deque
 
-if not SIMULATOR_FLAG:
+if SIMULATOR_FLAG: from car_sim import Car
+else: 
+    raise NotImplementedError('Not implemented for PI')
     from control.automobile_data_interface import Automobile_Data
-else:
-    from automobile_data_interface import Automobile_Data
 
 from stuff import *
 from path_planning import PathPlanning
@@ -20,13 +20,9 @@ from controllerSP import ControllerSpeed
 from detection import Detection
 from environmental_data_simulator import EnvironmentalData
 
-from helper_functions import *
 
-END_NODE = 85
-# CHECKPOINTS = [299,275] #roundabout
-# CHECKPOINTS = [86,99,116] #left right left right
-CHECKPOINTS = [86,255,110,346,END_NODE] #complete track#[86,430,193,141,346,85] #complete track
-# CHECKPOINTS = [86,235,END_NODE]
+END_NODE_SPEED_CHALLENGE = 458
+CHECKPOINTS = [472,206,500,147,380]
 SPEED_CHALLENGE = False
 
 ALWAYS_USE_VISION_FOR_STOPLINES = True
@@ -91,7 +87,6 @@ CONDITIONS = {
                                         # can be set as false if there is a lot of package loss or the car has not received signal in a while
     CAR_ON_PATH:              True,     # if true, the car is on the path, if the gps is trusted and the position is too far from the path it will be set to false
     REROUTING:                True,      # if true, the car is rerouting, for example at the beginning or after a roadblock
-    BUMPY_ROAD:               False,    # if true, the car is on a bumpy road
 }
 
 ACHIEVEMENTS = {
@@ -152,7 +147,7 @@ STRAIGHT_DIST_TO_EXIT_HIGHWAY = 0.8 #[m] go straight for this distance in orther
 
 #GPS
 ALWAYS_TRUST_GPS = False  # if true the car will always trust the gps (bypass)
-ALWAYS_DISTRUST_GPS = False #if true, the car will always distrust the gps (bypass)
+ALWAYS_DISTRUST_GPS = True #if true, the car will always distrust the gps (bypass)
 assert not(ALWAYS_TRUST_GPS and ALWAYS_DISTRUST_GPS), 'ALWAYS_TRUST_GPS and ALWAYS_DISTRUST_GPS cannot be both True'
 #Rerouting
 GPS_DISTANCE_THRESHOLD_FOR_CONVERGENCE = 0.2 #distance between 2 consecutive measure of the gps for the kalmann filter to be considered converged
@@ -235,22 +230,19 @@ MAX_ERROR_ON_LOCAL_DIST = 0.05 #[m] max error on the local distance
 #=========================== BRAIN ============================
 #==============================================================
 class Brain:
-    def __init__(self, car, controller, controller_sp, env, detection, path_planner:PathPlanning, checkpoints=None, desired_speed=0.3, debug=True):
+    def __init__(self, car:Car, 
+                 controller:Controller, 
+                 controller_sp:ControllerSpeed, 
+                 env:EnvironmentalData,
+                 detection:Detection,
+                 path_planner:PathPlanning, 
+                 checkpoints=None, desired_speed=0.3, debug=True):
         print("Initialize brain")
-        self.car = Automobile_Data() #not needed, just to import he methods in visual studio
         self.car = car
-        assert isinstance(self.car, Automobile_Data)
-        self.controller = Controller() #again, not needed
         self.controller = controller
-        self.controller_sp = ControllerSpeed() #again, not needed
         self.controller_sp = controller_sp
-        assert isinstance(self.controller, Controller)
-        self.detect = Detection() #again, not needed
         self.detect = detection
-        assert isinstance(self.detect, Detection)
         self.pp = path_planner
-        assert isinstance(self.pp, PathPlanning)
-        self.env = EnvironmentalData() #again, not needed
         self.env = env
         
         #navigation instruction is a list of tuples:
@@ -261,10 +253,8 @@ class Brain:
         self.checkpoint_idx = 0
         self.desired_speed = desired_speed
         self.parking_method = DEFAULT_PARKING_METHOD 
-        if ALWAYS_USE_GPS_FOR_PARKING:
-            self.parking_method = 'gps'
-        if ALWAYS_USE_SIGN_FOR_PARKING:
-            self.parking_method = 'sign'
+        if ALWAYS_USE_GPS_FOR_PARKING: self.parking_method = 'gps'
+        if ALWAYS_USE_SIGN_FOR_PARKING: self.parking_method = 'sign'
 
         #current and previous states (class State)
         self.curr_state = State()
@@ -288,7 +278,6 @@ class Brain:
         self.achievements = ACHIEVEMENTS
 
         # INITIALIZE STATES
-
         self.states = { 
             START_STATE:              State(START_STATE, self.start_state),
             END_STATE:                State(END_STATE, self.end_state),
@@ -332,8 +321,8 @@ class Brain:
         }
         self.active_routines_names = []
 
-        self.sign_points = np.load('data/sign_points.npy')
-        self.sign_types = np.load('data/sign_types.npy').astype(int)
+        self.sign_points = np.loadtxt(SIGN_POINTS_PATH, dtype=float)
+        self.sign_types = np.loadtxt(SIGN_TYPES_PATH, dtype=int)
         assert len(self.sign_points) == len(self.sign_types)
         self.sign_seen = np.zeros(len(self.sign_types))
         self.curr_sign = NO_SIGN
@@ -414,7 +403,7 @@ class Brain:
                 self.go_to_next_event()
             self.conditions[REROUTING] = False
             self.sign_seen = np.zeros_like(self.sign_seen) #reset the signs seen
-            if end_node == END_NODE and SPEED_CHALLENGE:
+            if end_node == END_NODE_SPEED_CHALLENGE and SPEED_CHALLENGE:
                 self.switch_to_state(BRAINLESS)
             else: self.switch_to_state(LANE_FOLLOWING)
 
@@ -448,20 +437,6 @@ class Brain:
                 sleep(SLEEP_AFTER_STOPPING)
                 self.switch_to_state(PARKING)
 
-        #check highway exit case
-        elif self.next_event.name == HIGHWAY_EXIT_EVENT:
-            if self.conditions[TRUST_GPS] or True:
-                diff = self.next_event.dist - self.car_dist_on_path 
-                if 0.0+0.1 < diff:
-                    print(f'Driving toward highway exit: exiting in {diff:.2f} [m]')
-                elif -0.05 < diff <= 0.0+0.1:
-                    print(f'Arrived at highway exit, switching to going straight for exiting')
-                    self.switch_to_state(GOING_STRAIGHT)
-                else:
-                    self.error('ERROR: LANE FOLLOWING: Missed Highway exit')
-            else:
-                raise NotImplementedError #TODO implement this case with signs
-
         # end of current route, go to end state
         elif self.next_event.name == END_EVENT:
             self.activate_routines([FOLLOW_LANE, CONTROL_FOR_OBSTACLES, DRIVE_DESIRED_SPEED])
@@ -472,8 +447,7 @@ class Brain:
                 elif -END_STATE_DISTANCE_THRESHOLD < dist_to_end <= END_STATE_DISTANCE_THRESHOLD:
                     print(f'Arrived at end, switching to end state')
                     self.switch_to_state(END_STATE)
-                else:
-                    self.error('ERROR: LANE FOLLOWING: Missed end')
+                else: self.error('ERROR: LANE FOLLOWING: Missed end')
 
         #we are approaching a stop_line, check only if we are far enough from the previous stop_line
         else:
@@ -484,8 +458,7 @@ class Brain:
                 if 0.0 < dist_to_stopline < GPS_STOPLINE_APPROACH_DISTANCE:
                     print(f'Switching to approaching stopline')
                     self.switch_to_state(APPROACHING_STOP_LINE)
-                else:
-                    print(f'It seems we passed the stopline, or path self intersected.')
+                else: print(f'It seems we passed the stopline, or path self intersected.')
             else:
                 far_enough_from_prev_stop_line = (self.event_idx == 1) or (self.car.dist_loc > STOP_LINE_DISTANCE_THRESHOLD)
                 print(f'stop enough: {self.car.dist_loc}') if self.prev_event.name is not None else None
@@ -493,7 +466,7 @@ class Brain:
                     self.switch_to_state(APPROACHING_STOP_LINE)
 
     def approaching_stop_line(self):
-        self.activate_routines([FOLLOW_LANE, SLOW_DOWN, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES]) #FOLLOW_LANE, SLOW_DOWN, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES
+        self.activate_routines([FOLLOW_LANE, SLOW_DOWN, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES])
 
         if self.curr_state.just_switched:
             cv.imwrite(f'asl/asl_{int(time() * 1000)}.png', self.car.frame)
@@ -512,7 +485,7 @@ class Brain:
                 decide_next_state = True
             else:
                 self.error(f'ERROR: APPROACHING STOP LINE: Missed stop line, dist: {dist_to_stopline}')
-        else:
+        else: 
             dist = self.detect.est_dist_to_stop_line
             # #check if we are here by mistake
             if dist > STOP_LINE_APPROACH_DISTANCE:
@@ -614,8 +587,7 @@ class Brain:
                 print('Car position in stop line frame: ', car_position_slf)
             else:
                 if USE_ADVANCED_NETWORK_FOR_STOPLINES:
-                    stopline_x, stopline_y, stopline_angle = self.detect.detect_stop_line2(self.car.frame, show_ROI=True)
-                    e2 = stopline_y
+                    _, e2, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=True)
                 else:
                     self.detect.detect_stop_line(self.car.frame, SHOW_IMGS)
                     e2, _, _ = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
@@ -637,12 +609,11 @@ class Brain:
             yaw_car = self.car.yaw
             yaw_mult_90 = get_yaw_closest_axis(yaw_car)
             alpha = diff_angle(yaw_car, yaw_mult_90) #get the difference from the closest multiple of 90deg
-            alpha_true = alpha
             print(f'alpha true: {np.rad2deg(alpha):.1f}')
             alpha = self.detect.detect_yaw_stopline(self.car.frame, SHOW_IMGS and False) * 0.8
             print(f'alpha est: {np.rad2deg(alpha):.1f}')
             if APPLY_YAW_CORRECTION:
-                closest_node, _ = self.pp.get_closest_start_node(self.car.x, self.car.y)
+                closest_node, _ = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
                 if closest_node in self.pp.no_yaw_calibration_nodes:
                     pass
                 else:
@@ -651,7 +622,7 @@ class Brain:
                     diff = diff_angle(self.next_event.yaw_stopline + alpha, self.car.yaw)
                     self.car.yaw_offset += diff
                     self.car.yaw += diff
-            assert abs(alpha) < np.pi/6, f'Car orientation wrt stopline is too big, it needs to be better aligned, alpha = {alpha}'
+            # assert abs(alpha) < np.pi/6, f'Car orientation wrt stopline is too big, it needs to be better aligned, alpha = {alpha}' #TODO uncomment this line
             rot_matrix = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]])
             
             # ## get position of the car in the stop line frame
@@ -667,9 +638,9 @@ class Brain:
             if SHOW_IMGS:
                 img = self.car.frame.copy()
                 #project the whole path (true)
-                img, _ = project_onto_frame(img, self.car, self.pp.path, align_to_car=True, color=(0, 100, 0))
+                img, _ = project_onto_frame(img, self.car.pose(), self.pp.path, align_to_car=True, color=(0, 100, 0))
                 #project local path (estimated), it should match the true path
-                img, _ = project_onto_frame(img, self.car, local_path_cf, align_to_car=False)
+                img, _ = project_onto_frame(img, self.car.pose(), local_path_cf, align_to_car=False)
                 cv.imshow('brain_debug', img)
                 cv.waitKey(1)
                 self.curr_state.var2 = np.array([self.car.x_true, self.car.y_true]) #var2 hold original position
@@ -681,8 +652,8 @@ class Brain:
                 est_car_pos_slf = car_position_slf
                 est_car_pos_slf_rot = est_car_pos_slf @ rot_matrix.T
                 est_car_pos_wf = est_car_pos_slf_rot + stop_line_position
-                cv.circle(self.pp.map, mR2pix(est_car_pos_wf), 25, (255, 0, 255), 5)
-                cv.circle(self.pp.map, mR2pix(true_start_pos_wf), 30, (0, 255, 0), 5)
+                cv.circle(self.pp.map, m2pix(est_car_pos_wf), 25, (255, 0, 255), 5)
+                cv.circle(self.pp.map, m2pix(true_start_pos_wf), 30, (0, 255, 0), 5)
                 cv.imshow('Path', self.pp.map)
                 cv.waitKey(1)
                 #debug
@@ -700,7 +671,7 @@ class Brain:
                 for i in range(len(local_path_cf)):
                     if (i%3 == 0):
                         p = local_path_cf[i]
-                        pix = mR2pix(p)
+                        pix = m2pix(p)
                         pix = (int(pix[0]+w//2), int(pix[1]-h//2))
                         cv.circle(local_map_img, pix, 10, (0, 150, 150), -1)
                 cv.imshow('local_path', local_map_img)
@@ -732,26 +703,27 @@ class Brain:
             angle = self.car.yaw_loc_o # + self.car.yaw_loc
             rot_matrix_w = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
             # show car position in the local frame (from the encoder)
-            cv.circle(local_map_img, (mR2pix(car_pos_loc)[0]+w//2, mR2pix(car_pos_loc)[1]-h//2), 5, (255, 0, 255), 2)
+            cv.circle(local_map_img, (m2pix(car_pos_loc)[0]+w//2, m2pix(car_pos_loc)[1]-h//2), 5, (255, 0, 255), 2)
             # show the true position to check if they match, translated wrt starting position into the local frame
             true_start_pos_wf = self.curr_state.var2
             true_pos_loc = np.array([self.car.x_true, self.car.y_true]) - true_start_pos_wf
             true_pos_loc = true_pos_loc @ rot_matrix_w
-            cv.circle(local_map_img, (mR2pix(true_pos_loc)[0]+w//2, mR2pix(true_pos_loc)[1]-h//2), 7, (0, 255, 0), 2)
+            cv.circle(local_map_img, (m2pix(true_pos_loc)[0]+w//2, m2pix(true_pos_loc)[1]-h//2), 7, (0, 255, 0), 2)
             cv.imshow('local_path', local_map_img)
             true_start_pos_wf = self.curr_state.var2
             car_pos_loc_rot_wf = car_pos_loc @ rot_matrix_w.T
             car_pos_wf = true_start_pos_wf + car_pos_loc_rot_wf
             # show car position in wf (encoder)
-            cv.circle(self.pp.map, mR2pix(car_pos_wf), 5, (255, 0, 255), 2)
+            cv.circle(self.pp.map, m2pix(car_pos_wf), 5, (255, 0, 255), 2)
             # show the true position to check if they match
             true_pos_wf = np.array([self.car.x_true, self.car.y_true])
-            cv.circle(self.pp.map, mR2pix(true_pos_wf), 7, (0, 255, 0), 2)
+            cv.circle(self.pp.map, m2pix(true_pos_wf), 7, (0, 255, 0), 2)
             cv.imshow('Path', self.pp.map)
             cv.waitKey(1)
         if np.abs(get_curvature(local_path_cf)) < 0.1: #the local path is straight
             print('straight')
-            max_idx = len(local_path_cf)-60 #dont follow until the end
+            # max_idx = len(local_path_cf)-60 #dont follow until the end
+            max_idx = 3
         else: #curvy path
             max_idx = len(local_path_cf)-1  #follow until the end
             print('curvy')
@@ -763,8 +735,8 @@ class Brain:
             point_ahead = local_path_cf[idx_point_ahead]
             if SHOW_IMGS:
                 img = self.car.frame.copy()
-                img, _ = project_onto_frame(img, self.car, local_path_cf, align_to_car=False)
-                img, _ = project_onto_frame(img, self.car, point_ahead, align_to_car=False, color=(0,0,255))
+                img, _ = project_onto_frame(img, self.car.pose(), local_path_cf, align_to_car=False)
+                img, _ = project_onto_frame(img, self.car.pose(), point_ahead, align_to_car=False, color=(0,0,255))
                 cv.imshow('brain_debug', img)
                 cv.waitKey(1)
             gains = [0.0, .0, 1.2, 0.0] #k1,k2,k3,k3D
@@ -1426,8 +1398,6 @@ class Brain:
             obstacle = None
             if self.conditions[CAN_OVERTAKE]:
                 obstacle = CAR
-            elif self.conditions[BUMPY_ROAD]:
-                obstacle = CAR
             else: #we cannot overtake and we are NOT in a bumpy road 
                 obstacle = PEDESTRIAN
 
@@ -1471,7 +1441,7 @@ class Brain:
         e2, e3, point_ahead = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
         if SHOW_IMGS:
             img = self.car.frame.copy()
-            img, proj = project_onto_frame(img, self.car, point_ahead, align_to_car=False, color=(255,0,255), thickness=3)
+            img, proj = project_onto_frame(img, self.car.pose(), point_ahead, align_to_car=False, color=(255,0,255), thickness=3)
             img = cv.line(img, (int(proj[0]), int(proj[1])), (int(img.shape[1]/2), int(img.shape[0])), (255,0,255), 2)
             cv.imshow('brain_debug', img)
             cv.waitKey(1)
@@ -1500,7 +1470,6 @@ class Brain:
                 self.routines[DETECT_STOP_LINE].var2 = past_detections = deque(maxlen=DETECTION_DEQUE_LENGTH)
             
             adapted_distance = dist + self.car.encoder_distance
-
             past_detections.append(adapted_distance)
             self.stop_line_distance_median = np.median(past_detections) if len(past_detections) > SAMPLE_BEFORE_CONFIDENCE else None #NOTE consider also mean
             self.routines[DETECT_STOP_LINE].var1 = curr_time
@@ -1562,12 +1531,6 @@ class Brain:
         if np.abs(self.car.filtered_encoder_velocity - self.desired_speed) > 0.1:
             self.car.drive_speed(self.desired_speed)
 
-    # STATE CHECKS
-    def check_logic(self):
-        # if not self.conditions[CAR_ON_PATH]:
-        #     self.error(f'ERROR: CHECKS: Car is not on path')
-        pass
-
     # UPDATE CONDITIONS
     def update_state(self):
         '''
@@ -1597,14 +1560,7 @@ class Brain:
             #OVERTAKE/DOTTED_LINE
             self.conditions[CAN_OVERTAKE] = self.pp.is_dotted(closest_node) 
 
-            #BUMPY_ROAD
-            was_bumpy = self.conditions[BUMPY_ROAD]
-            self.conditions[BUMPY_ROAD] = closest_node in self.pp.bumpy_road_nodes
-            if self.conditions[BUMPY_ROAD] and not was_bumpy:
-                self.env.publish_obstacle(BUMPY_ROAD, self.car.x_est, self.car.y_est)
-
             #REROUTING updated in start state
-
             if not self.conditions[REROUTING]:
                 #CAR_ON_PATH
                 path = self.pp.path
@@ -1637,7 +1593,6 @@ class Brain:
         self.run_routines()
         print('==========================================================================')
         print()
-        self.check_logic()
 
     def run_current_state(self):
         self.curr_state.run()

@@ -16,8 +16,8 @@ from os.path import join, exists, dirname
 
 YAW_GLOBAL_OFFSET = 0.0 if SIMULATOR_FLAG else np.deg2rad(-5) # [rad] IMU:yaw offset for true orientation of the map
 
-START_X = 8.509 # 0.2
-START_Y = 2.016# 14.8
+START_X = 12.757 
+START_Y = 2.017
 
 GPS_DELAY = 0.45 # [s] delay for gps message to arrive
 ENCODER_POS_FREQ = 100.0 # [Hz] frequency of encoder position messages

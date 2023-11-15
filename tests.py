@@ -1,15 +1,17 @@
-from path_planning import PathPlanning
 from car_sim import CarSim
-from stuff import *
+from path_planning import PathPlanning
 from controller import Controller
+from detection import Detection
+from stuff import *
 from time import time, sleep
 import numpy as np, os
 # os.system('rosservice call /gazebo/reset_simulation')
 
 PP_DA = .15
+car = CarSim()
 pp = PathPlanning()
 cc = Controller(dist_point_ahead=PP_DA)
-car = CarSim()
+dd = Detection()
 
 path_nodes = [472,207]
 path_nodes = [472,468]
@@ -45,7 +47,10 @@ while True:
     #draw point ahead
     cv.circle(pp.map, xy2cv(pa[0],pa[1]), 4, (0,0,255), -1)
 
-    e3 = diff_angle(np.arctan2(pa[1]-y, pa[0]-x), yaw)
+    # e3 = diff_angle(np.arctan2(pa[1]-y, pa[0]-x), yaw)
+
+    _, e3, _ = dd.detect_lane(car.frame)
+
 
     s, α = cc.get_control(0.0, e3, 0.0, TARGET_SPEED)
     car.drive(s, np.rad2deg(α))

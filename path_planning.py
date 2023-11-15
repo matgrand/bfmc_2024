@@ -23,7 +23,7 @@ class PathPlanning():
         self.highway_nodes = list(np.loadtxt(HW_PATH, dtype=str)) # highway nodes
         
         self.skip_nodes = [str(i) for i in [262,235,195,196,281,216,263,234,239,301,282,258]] # 469? # nodes to skip in route generation
-
+        self.no_yaw_calibration_nodes = [] #for compatibility or future proofing
         self.forbidden_nodes = self.int_mid + self.int_in + self.int_out + self.ra_mid + self.ra_in + self.ra_out 
 
         #event points

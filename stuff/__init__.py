@@ -31,6 +31,22 @@ def p2cv(p, k=K_VERYSMALL): # point in the shape of np.array([x,y]) gets convert
     assert p.shape == (2,), f'p shape: {p.shape}'
     return xy2cv(p[0], p[1], k)
 
+# #function to draw the car on the map
+# def draw_car(map, x, y, α, color=(0, 255, 0),  draw_body=True):
+#     car_length = 0.45-0.22 #m
+#     car_width = 0.2 #m
+#     #find 4 corners not rotated car_width
+#     corners = np.array([[-0.22, car_width/2],
+#                         [car_length, car_width/2],
+#                         [car_length, -car_width/2],
+#                         [-0.22, -car_width/2]])
+#     #rotate corners
+#     rot_matrix = np.array([[np.cos(α), -np.sin(α)],[np.sin(α), np.cos(α)]])
+#     corners = corners @ rot_matrix.T
+#     corners = corners + np.array([x,y]) #add car position
+#     if draw_body: cv.polylines(map, [m2pix(corners)], True, color, 3, cv.LINE_AA) 
+#     return map
+
 def get_point_ahead(x,y,path,d=PP_DA):
     """Returns the point ahead of the car on the path"""
     p = np.array([x,y], dtype=np.float32) #car position
@@ -69,6 +85,7 @@ def create_window(name, size=(1920,1080)):
 
 #function to draw the car on the map
 def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
+    assert isinstance(cp, Pose)
     x, y, ψ = cp.x, cp.y, cp.ψ
     cl, cw = LENGTH-CM2WB, WIDTH #car length and width
     #find 4 corners not rotated cw
@@ -82,6 +99,7 @@ def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
     return map
 
 def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,255), thickness=2):
+    assert isinstance(cp, Pose)
     #check if its a single point
     single_dim = False
     if points.ndim == 1:
@@ -137,6 +155,7 @@ def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,2
     return frame, proj_points
 
 def to_car_frame(points, cp:Pose, return_size=3):
+    assert isinstance(cp, Pose)
     #check if its a single point
     single_dim = False
     if points.ndim == 1:
@@ -181,13 +200,45 @@ def project_stopline(frame, cp:Pose, stopline_x, stopline_y, car_angle_to_stopli
     # frame = cv.polylines(frame, [proj_points], False, color, 2)
     return frame, proj_points
 
-def get_yaw_closest_axis(angle):
+def get_curvature(points, v_des=0.0):
+    #OLD VERSION
+    # # calculate curvature 
+    # local_traj = points
+    # #get length
+    # path_length = 0
+    # for i in range(len(points)-1):
+    #     x1,y1 = points[i]
+    #     x2,y2 = points[i+1]
+    #     path_length += np.hypot(x2-x1,y2-y1) 
+    # #time
+    # tot_time = path_length / v_des
+    # local_time = np.linspace(0, tot_time, len(local_traj))
+    # dx_dt = np.gradient(local_traj[:,0], local_time)
+    # dy_dt = np.gradient(local_traj[:,1], local_time)
+    # dp_dt = np.gradient(local_traj, local_time, axis=0)
+    # v = np.linalg.norm(dp_dt, axis=1)
+    # ddx_dt = np.gradient(dx_dt, local_time)
+    # ddy_dt = np.gradient(dy_dt, local_time)
+    # curv = (dx_dt*ddy_dt-dy_dt*ddx_dt) / np.power(v,1.5)
+    # avg_curv = np.mean(curv)
+    # return avg_curv
+    diff = points[1:] - points[:-1]
+    distances = np.linalg.norm(diff, axis=1)
+    d = np.mean(distances)
+    angles = np.arctan2(diff[:,1], diff[:,0]) 
+    alphas = diff_angle(angles[1:], angles[:-1])
+    alpha = np.mean(alphas)
+    curv = (2*np.sin(alpha*0.5)) / d
+    COMPENSATION_FACTOR = 0.855072 
+    return curv * COMPENSATION_FACTOR
+
+def get_yaw_closest_axis(α):
     """
-    Returns the angle multiple of pi/2 closest to the given angle 
+    Returns the α multiple of pi/2 closest to the given α 
     e.g. returns one of these 4 possible options: [-pi/2, 0, pi/2, pi]
     """
-    int_angle = round(angle/(np.pi/2))
-    assert int_angle in [-2,-1,0,1,2], f'angle: {int_angle}'
+    int_angle = round(α/(np.pi/2))
+    assert int_angle in [-2,-1,0,1,2], f'α: {int_angle}'
     if int_angle == -2: int_angle = 2
     return int_angle*np.pi/2
 
