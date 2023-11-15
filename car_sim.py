@@ -86,8 +86,8 @@ class CarSim(Car):
         self.gyroz = float(data.vpsi)
         self.t = float(data.t)
         #true position NOTE: not in real car
-        self.x_true = float(data.x)*15/13.6
-        self.y_true = float(data.y)*15/13.6 #TODO remove the 15/13.6 when the simulator is fixed
+        self.x_true = float(data.x)
+        self.y_true = float(data.y)
 
     def encoder_distance_callback(self, data) -> None:
         '''Callback when an encoder distance message is received

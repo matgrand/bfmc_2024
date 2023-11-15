@@ -31,6 +31,17 @@ def p2cv(p, k=K_VERYSMALL): # point in the shape of np.array([x,y]) gets convert
     assert p.shape == (2,), f'p shape: {p.shape}'
     return xy2cv(p[0], p[1], k)
 
+def get_point_ahead(x,y,path,d=PP_DA):
+    """Returns the point ahead of the car on the path"""
+    p = np.array([x,y], dtype=np.float32) #car position
+    cp_idx = np.argmin(np.linalg.norm(path-p, axis=1)) #closest point index
+    if cp_idx == len(path)-1: return path[-1] #end of path
+    samples_ahead = int(d/PATH_STEP_LENGTH) #number of samples ahead in the path
+    short_path = path[cp_idx:cp_idx+samples_ahead*5] #get a short path ahead for efficiency
+    pa_idx = np.argmin(np.abs(np.linalg.norm(short_path-p, axis=1) - d)) #point ahead index
+    pa = short_path[pa_idx] #point ahead
+    return pa
+
 def load_graph() -> networkx.Graph:
     from os.path import join, exists, dirname
     graph_path = join(dirname(__file__), 'final_graph.graphml')

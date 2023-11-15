@@ -227,6 +227,8 @@ ALL_NODES_PATHS = [INT_IN_PATH, INT_OUT_PATH, INT_MID_PATH, RA_IN_PATH, RA_OUT_P
 ################### PATH PLANING ###################
 PATH_STEP_LENGTH = 0.01 # [m] interpolation step length for the path
 
+################### CONTROLLER ###################
+PP_DA = 0.35 # [m] distance from the car to the point ahead
 
 ################### SIMULATOR SPECIFIC ###################
 # simulator specific constants

@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 import numpy as np
-from stuff.names_and_constants import WB #NOTE: double check that wheelbase is the correct one to be used here
+from stuff.names_and_constants import WB, PP_DA #NOTE: double check that wheelbase is the correct one to be used here
 from time import time
 
 class Controller():
-    def __init__(self,k1=1.0,k2=1.0,k3=1.0,k3D=0.08,dist_point_ahead=0.35,ff=1.0):
+    def __init__(self,k1=1.0,k2=1.0,k3=1.0,k3D=0.08,dist_point_ahead=PP_DA,ff=1.0):
         #controller paramters
         self.k1, self.k2, self.k3, self.k3D = k1, k2, k3, k3D
         self.dist_point_ahead = dist_point_ahead
@@ -14,7 +14,7 @@ class Controller():
         self.prev_time = 0.0
 
     def get_control(self, e2, e3, curv, desired_speed, gains=None):
-        self.e2, self.e3 = e2, e3
+        self.e2, self.e3 = e2, e3 # pp error, lateral error
         k2 , k3 = self.k2, self.k3
         if gains is not None: k1, k2, k3, k3D = gains
         # proportional term

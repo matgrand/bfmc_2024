@@ -135,7 +135,4 @@ if __name__ == '__main__':
         cv.destroyAllWindows()
     except KeyboardInterrupt:
         cv.destroyAllWindows()
-    except rospy.exceptions.ROSTimeMovedBackwardsException:
-        print('ROSException, keep calm and carry on')
-        pass
 

@@ -28,7 +28,7 @@
     </node>
     <node id="7">
       <data key="d2">5.158907734056988</data>
-      <data key="d3">7.357789564573825</data>
+      <data key="d3">7.3577895645738245</data>
     </node>
     <node id="9">
       <data key="d2">4.96</data>
@@ -231,8 +231,8 @@
       <data key="d3">0.6799999999999997</data>
     </node>
     <node id="510">
-      <data key="d2">5.44</data>
-      <data key="d3">0.6799999999999997</data>
+      <data key="d2">5.327938818305168</data>
+      <data key="d3">0.6777352904897003</data>
     </node>
     <node id="62">
       <data key="d2">4.93</data>
@@ -275,7 +275,7 @@
       <data key="d3">9.77</data>
     </node>
     <node id="78">
-      <data key="d2">0.3677889478228692</data>
+      <data key="d2">0.36778894782286914</data>
       <data key="d3">7.357789564573825</data>
     </node>
     <node id="77">
@@ -1624,7 +1624,7 @@
     </node>
     <node id="408">
       <data key="d2">15.289708276797828</data>
-      <data key="d3">1.1977796965585294</data>
+      <data key="d3">1.1977796965585297</data>
     </node>
     <node id="409">
       <data key="d2">15.462094486246453</data>
