@@ -103,13 +103,9 @@ if __name__ == '__main__':
         cv.waitKey(1)
     try:
         car.stop()
-        fps_avg = 0.0
-        fps_cnt = 0
+        loop_time = 1.0 / TARGET_FPS
         while not rospy.is_shutdown():
-
             loop_start_time = time()
-            # os.system('clear') #0.1 sec, dont use it
-
             if SHOW_IMGS:
                 map1 = map.copy()
                 draw_car(map1, car.est_pose(), color=(180,0,0))
@@ -136,7 +132,7 @@ if __name__ == '__main__':
             print(car)
             print(f'Lane detection time = {dd.avg_lane_detection_time:.1f} [ms]')
             # print(f'Sign detection time = {dd.avg_sign_detection_time:.1f} [ms]')
-            print(f'FPS = {fps_avg:.1f},  loop_cnt = {fps_cnt}, capped at {TARGET_FPS}')
+            print(f'FPS = {1/loop_time:.1f}, capped at {TARGET_FPS}')
 
             if SHOW_IMGS:
                 frame = car.frame.copy()
@@ -146,12 +142,8 @@ if __name__ == '__main__':
                     break
             
             loop_time = time() - loop_start_time
-            fps_avg = (fps_avg * fps_cnt + 1.0 / loop_time) / (fps_cnt + 1)
-            fps_cnt += 1
             if loop_time < 1.0 / TARGET_FPS:
                 sleep(1.0 / TARGET_FPS - loop_time)
-
-
 
     except KeyboardInterrupt:
         print("Shutting down")
