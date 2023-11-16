@@ -232,7 +232,7 @@ class PathPlanning():
         # draw trajectory
         cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=4, lineType=cv.LINE_AA)
         if SHOW_IMGS:
-            cv.imshow('Path', self.map)
+            cv.imshow('Path', cv.flip(self.map, 0))
             cv.waitKey(1)
 
     def get_closest_start_node(self, x, y):

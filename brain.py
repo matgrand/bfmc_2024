@@ -7,6 +7,7 @@ import cv2 as cv
 from time import time, sleep
 from numpy.linalg import norm
 from collections import deque
+from shutil import get_terminal_size as gts
 
 if SIMULATOR_FLAG: from car_sim import Car
 else: 
@@ -33,8 +34,8 @@ class State():
         self.method = method
         self.active = activated
         self.start_time = None
-        self.start_position = None
-        self.start_distance = None
+        self.start_position = None 
+        self.start_distance = None 
         self.just_switched = False
         self.interrupted = False
         #variables specific to state, can be freely assigned
@@ -78,7 +79,8 @@ class Event:
         self.length_path_ahead = length_path_ahead   # length of the path after the event, only for intersections or roundabouts
         self.curvature = curvature      # curvature of the path ahead of the event
     def __str__(self):
-        return self.name.upper() if self.name is not None else 'None'
+        if self.name is None: return 'None'
+        return f'{self.name.upper()}: d:{self.dist:.2f} [m]'
 
 CONDITIONS = {
     CAN_OVERTAKE:             False,     #if true, the car is in presence of a dotted line and is allowed to overtake it
@@ -356,23 +358,25 @@ class Brain:
         #localize the car and go to the first checkpoint
         can_generate_route = False
         curr_time = time()
-        if self.conditions[TRUST_GPS]:
-            #get closest node
-            closest_node, distance = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
-            print(f'GPS converged, starting from node: {closest_node}, distance: {distance:.2f}')
-            # sleep(3.0)
-            self.checkpoints[self.checkpoint_idx] = closest_node
-            if distance > 0.8: 
-                self.error('ERROR: REROUTING: GPS converged, but distance is too large, we are too far from the lane')
-            can_generate_route = True
-        else:
-            start_time = self.curr_state.var2
-            print(f'Waiting for gps: {(curr_time-start_time):.1f}/{GPS_TIMEOUT}')
-            if curr_time - start_time > GPS_TIMEOUT:
-                print('WARNING: ROUTE_GENERATION: No gps signal, Starting from the first checkpoint')
-                sleep(3.0)
+        if self.checkpoint_idx == 0: # its the first time here, we need to localize the car
+            if self.conditions[TRUST_GPS]:
+                #get closest node
+                closest_node, distance = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
+                print(f'GPS converged, starting from node: {closest_node}, distance: {distance:.2f}')
+                # sleep(3.0)
+                self.checkpoints[self.checkpoint_idx] = closest_node
+                if distance > 0.8: 
+                    self.error('ERROR: REROUTING: GPS converged, but distance is too large, we are too far from the lane')
                 can_generate_route = True
-        
+            else:
+                start_time = self.curr_state.var2
+                print(f'Waiting for gps: {(curr_time-start_time):.1f}/{GPS_TIMEOUT}')
+                if curr_time - start_time > GPS_TIMEOUT:
+                    print('WARNING: ROUTE_GENERATION: No gps signal, Starting from the first checkpoint')
+                    sleep(3.0)
+                    can_generate_route = True
+        else: can_generate_route = True # we assume to be in the correct node
+
         if can_generate_route:
             print('Generating route...')
             #get start and end nodes from the chekpoint list
@@ -419,10 +423,8 @@ class Brain:
 
     def lane_following(self): # LANE FOLLOWING ##############################
         #highway conditions
-        if self.conditions[HIGHWAY]:
-            self.activate_routines([FOLLOW_LANE, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES, ACCELERATE])
-        else:
-            self.activate_routines([FOLLOW_LANE, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES, DRIVE_DESIRED_SPEED])
+        if self.conditions[HIGHWAY]: self.activate_routines([FOLLOW_LANE, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES, ACCELERATE])
+        else: self.activate_routines([FOLLOW_LANE, DETECT_STOP_LINE, CONTROL_FOR_OBSTACLES, DRIVE_DESIRED_SPEED])
 
         #check parking
         if self.next_event.name == PARKING_EVENT:
@@ -440,15 +442,12 @@ class Brain:
         # end of current route, go to end state
         elif self.next_event.name == END_EVENT:
             self.activate_routines([FOLLOW_LANE, CONTROL_FOR_OBSTACLES, DRIVE_DESIRED_SPEED])
-            if self.conditions[TRUST_GPS]: #NOTE End is implemented only with gps now, much more robust, but cannot do it without it
-                dist_to_end = len(self.pp.path)*0.01 - self.car_dist_on_path
-                if dist_to_end > END_STATE_DISTANCE_THRESHOLD:
-                    print(f'Driving toward end: exiting in {dist_to_end:.2f} [m]')
-                elif -END_STATE_DISTANCE_THRESHOLD < dist_to_end <= END_STATE_DISTANCE_THRESHOLD:
-                    print(f'Arrived at end, switching to end state')
-                    self.switch_to_state(END_STATE)
-                else: self.error('ERROR: LANE FOLLOWING: Missed end')
-
+            dist_travelled = self.car.encoder_distance - self.curr_state.start_distance
+            dist_to_travel = self.next_event.dist - self.prev_event.dist
+            print(f'dist travelled: {dist_travelled:.2f}/{dist_to_travel:.2f} [m]')
+            if dist_travelled > (dist_to_travel - END_STATE_DISTANCE_THRESHOLD):
+                self.switch_to_state(END_STATE)
+            
         #we are approaching a stop_line, check only if we are far enough from the previous stop_line
         else:
             if self.conditions[TRUST_GPS]:
@@ -460,8 +459,10 @@ class Brain:
                     self.switch_to_state(APPROACHING_STOP_LINE)
                 else: print(f'It seems we passed the stopline, or path self intersected.')
             else:
-                far_enough_from_prev_stop_line = (self.event_idx == 1) or (self.car.dist_loc > STOP_LINE_DISTANCE_THRESHOLD)
-                print(f'stop enough: {self.car.dist_loc}') if self.prev_event.name is not None else None
+                # far_enough_from_prev_stop_line = (self.event_idx == 1) or (self.car.dist_loc > STOP_LINE_DISTANCE_THRESHOLD)
+                dont_detect_stoplines_for = (self.next_event.dist - self.prev_event.dist)*0.6
+                far_enough_from_prev_stop_line = (self.event_idx == 1) or (self.car.dist_loc > dont_detect_stoplines_for)
+                print(f'stop enough: {self.car.dist_loc:.2f}/{dont_detect_stoplines_for:.2f}') if self.prev_event.name is not None else None
                 if self.detect.est_dist_to_stop_line < STOP_LINE_APPROACH_DISTANCE and far_enough_from_prev_stop_line and self.routines[DETECT_STOP_LINE].active:
                     self.switch_to_state(APPROACHING_STOP_LINE)
 
@@ -654,7 +655,7 @@ class Brain:
                 est_car_pos_wf = est_car_pos_slf_rot + stop_line_position
                 cv.circle(self.pp.map, m2pix(est_car_pos_wf), 25, (255, 0, 255), 5)
                 cv.circle(self.pp.map, m2pix(true_start_pos_wf), 30, (0, 255, 0), 5)
-                cv.imshow('Path', self.pp.map)
+                cv.imshow('Path', cv.flip(self.pp.map, 0))
                 cv.waitKey(1)
                 #debug
                 # self.car.drive_speed(0.0)
@@ -718,7 +719,7 @@ class Brain:
             # show the true position to check if they match
             true_pos_wf = np.array([self.car.x_true, self.car.y_true])
             cv.circle(self.pp.map, m2pix(true_pos_wf), 7, (0, 255, 0), 2)
-            cv.imshow('Path', self.pp.map)
+            cv.imshow('Path', cv.flip(self.pp.map,0))
             cv.waitKey(1)
         if np.abs(get_curvature(local_path_cf)) < 0.1: #the local path is straight
             print('straight')
@@ -1580,11 +1581,13 @@ class Brain:
                     self.car_dist_on_path += dist_delay_increment
     #===================== STATE MACHINE MANAGEMENT =====================#
     def run(self):
+        print('\n' * gts().lines, end='')
+        print('\033[F' * gts().lines, end='')
         print('==========================================================================')
-        print(f'STATE:          {self.curr_state}')
-        print(f'UPCOMING_EVENT: {self.next_event}')
-        print(f'ROUTINES:       {self.active_routines_names+ALWAYS_ON_ROUTINES}')
-        print(f'CONDITIONS:     {self.conditions}')
+        print(f'STATE:      {self.curr_state}')
+        print(f'NEXT_EVENT: {self.next_event} - PREV: {self.prev_event}')
+        print(f'ROUTINES:   {self.active_routines_names+ALWAYS_ON_ROUTINES}')
+        print(f'CONDITIONS: {self.conditions}')
         print('==========================================================================')
         self.run_current_state()
         print(f'CURR_SIGN: {self.curr_sign}')
@@ -1646,23 +1649,15 @@ class Brain:
         self.switch_to_state(self.prev_state.name)
     
     def go_to_next_event(self):
-        '''
-        Switches to the next event on the path
-        '''
+        '''Switches to the next event on the path'''
         self.prev_event = self.next_event
-        if self.event_idx == len(self.events):
-            #no more events, for now
-            pass
-        else:
-            self.next_event = self.events[self.event_idx]
-            self.event_idx += 1
+        if self.event_idx == len(self.events): pass #no more events, for now
+        else: self.next_event = self.events[self.event_idx]; self.event_idx += 1
     
     def next_checkpoint(self):
         self.checkpoint_idx += 1
         if self.checkpoint_idx < (len(self.checkpoints)-1): #check if it's last
-            #update events
-            self.prev_event = self.next_event#deepcopy(self.next_event)
-            pass
+            self.prev_event = self.next_event #update event
         else: 
             #it was the last checkpoint
             print('Reached last checkpoint...\nExiting...')
@@ -1710,7 +1705,8 @@ class Brain:
                 to_ret.append(event)
         #add end of path event
         ee_point = self.pp.path[-1]
-        end_event = Event(END_EVENT, dist=0.0, point=ee_point)
+        final_dist = len(self.pp.path)*PATH_STEP_LENGTH
+        end_event = Event(END_EVENT, dist=final_dist, point=ee_point)
         to_ret.append(end_event)
         return to_ret
 

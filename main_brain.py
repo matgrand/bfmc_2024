@@ -108,9 +108,7 @@ if __name__ == '__main__':
         while not rospy.is_shutdown():
 
             loop_start_time = time()
-            # os.system('cls' if os.name=='nt' else 'clear') #0.1 sec
-            print('\n' * gts().lines, end='')
-            print('\033[F' * gts().lines, end='')
+            # os.system('clear') #0.1 sec, dont use it
 
             if SHOW_IMGS:
                 map1 = map.copy()
@@ -120,8 +118,6 @@ if __name__ == '__main__':
                 draw_car(map1, car.est_pose(), color=color)
                 if len(brain.pp.path) > 0: 
                     cv.circle(map1, m2pix(brain.pp.path[int(brain.car_dist_on_path*100)]), 10, (150,50,255), 3) 
-                # else:
-                #     print('No path')
                 cv.imshow('Map', cv.flip(map1, 0))
                 cv.waitKey(1)
 
@@ -144,10 +140,6 @@ if __name__ == '__main__':
 
             if SHOW_IMGS:
                 frame = car.frame.copy()
-                # if brain.stop_line_distance_median is not None:
-                #     dist = brain.stop_line_distance_median - car.encoder_distance + 0.1
-                #     angle_to_stopline = diff_angle(car.yaw, get_yaw_closest_axis(car.yaw))
-                #     frame, _ = project_stopline(frame, car, dist, angle_to_stopline, color=(0,200,0))
                 cv.imshow('frame', frame)
                 if cv.waitKey(1) == 27:
                     cv.destroyAllWindows()
