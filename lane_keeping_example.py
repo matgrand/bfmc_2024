@@ -24,6 +24,9 @@ pp.augment_path()
 FPS = 60.0
 TARGET_SPEED = .5
 
+#run visualization node
+os.system('rosrun example visualizer.py &')
+
 create_window('map')
 while True:
     start_loop = time()
@@ -47,15 +50,15 @@ while True:
     #draw point ahead
     cv.circle(pp.map, xy2cv(pa[0],pa[1]), 4, (0,0,255), -1)
 
-    # e3 = diff_angle(np.arctan2(pa[1]-y, pa[0]-x), yaw)
-
-    _, e3, _ = dd.detect_lane(car.frame)
-
+    # heading direction error: e3
+    e3 = diff_angle(np.arctan2(pa[1]-y, pa[0]-x), yaw) # using global position
+    # _, e3, _ = dd.detect_lane(car.frame) #network estimate
 
     s, α = cc.get_control(0.0, e3, 0.0, TARGET_SPEED)
     car.drive(s, np.rad2deg(α))
     
     cv.imshow('map', cv.flip(pp.map, 0))
+    print(f'press esc to exit.', end='\r')
     key = cv.waitKey(1)
     if key == 27: break
     #wait to mantain the desired FPS

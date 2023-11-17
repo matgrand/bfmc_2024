@@ -59,6 +59,7 @@ if __name__ == '__main__':
         cv.resizeWindow('Path', 600, 600)
         cv.namedWindow('Map', cv.WINDOW_NORMAL)
         cv.resizeWindow('Map', 600, 600)
+        os.system('rosrun example visualizer.py &') #run visualization node
 
 
     # init the car data
