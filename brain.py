@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from stuff import *
-SHOW_IMGS = True
+SHOW_IMGS = False
+# SHOW_IMGS = True
 
 import numpy as np
 import cv2 as cv
@@ -23,7 +24,8 @@ from environmental_data_simulator import EnvironmentalData
 
 
 END_NODE_SPEED_CHALLENGE = 458
-CHECKPOINTS = [472,206,500,147,380]
+# CHECKPOINTS = [472,206,500,147,380]
+CHECKPOINTS = [472,206,500,147,380,321,340]
 SPEED_CHALLENGE = False
 
 ALWAYS_USE_VISION_FOR_STOPLINES = True

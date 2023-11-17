@@ -29,7 +29,7 @@ map, _ = load_map()
 # PARAMETERS
 TARGET_FPS = 30.0
 sample_time = 0.01 # [s]
-DESIRED_SPEED = 0.3# [m/s] #.35
+DESIRED_SPEED = 0.4# [m/s] #.35
 SP_SPEED = 0.8 # [m/s]
 CURVE_SPEED = 0.6# [m/s]
 path_step_length = 0.01 # [m]
@@ -50,6 +50,7 @@ cap.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
 cap.set(cv.CAP_PROP_FPS, 30)
 
 if __name__ == '__main__':
+    os.system('rosrun example visualizer.py &') #run visualization node
 
     if SHOW_IMGS:
         cv.namedWindow('frame', cv.WINDOW_NORMAL)
@@ -59,7 +60,6 @@ if __name__ == '__main__':
         cv.resizeWindow('Path', 600, 600)
         cv.namedWindow('Map', cv.WINDOW_NORMAL)
         cv.resizeWindow('Map', 600, 600)
-        os.system('rosrun example visualizer.py &') #run visualization node
 
 
     # init the car data
