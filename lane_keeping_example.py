@@ -5,7 +5,10 @@ from detection import Detection
 from stuff import *
 from time import time, sleep
 import numpy as np, os
-# os.system('rosservice call /gazebo/reset_simulation')
+
+os.system('rosservice call /gazebo/pause_physics') #pause physics
+os.system('rosservice call /gazebo/reset_simulation') #reset simulation
+os.system('rosservice call /gazebo/unpause_physics') #unpause physics
 
 PP_DA = .15
 car = CarSim()
@@ -68,5 +71,6 @@ while True:
 
 cv.destroyAllWindows()
 car.stop()
-sleep(1.0)
+sleep(2.0)
 print('Done')
+raise KeyboardInterrupt

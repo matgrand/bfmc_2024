@@ -29,6 +29,14 @@ class PathPlanning():
         #event points
         self.event_points = np.loadtxt(EVENT_POINTS_PATH, dtype=np.float32)
         self.event_types = [EVENT_TYPES[int(i)] for i in np.loadtxt(EVENT_TYPES_PATH, dtype=np.int32)]
+        #workaround: remove nodes 66 and 7, which are hard to deal with the current state machine
+        for i, (ep, et) in enumerate(zip(self.event_points, self.event_types)):
+            p66, p7 = np.array([self.get_xy('66')]), np.array([self.get_xy('7')])
+            if norm(ep - p66) < 0.5*PATH_STEP_LENGTH or norm(ep - p7) < 0.5*PATH_STEP_LENGTH:
+                self.event_points = np.delete(self.event_points, i, axis=0)
+                self.event_types = np.delete(self.event_types, i, axis=0)
+                print(f'removed event point {i}: {et} at {ep}, too close to 66 or 7')
+
         assert len(self.event_points) == len(self.event_types), "event points and types are not the same length"
 
         # import nodes and edges
@@ -40,11 +48,8 @@ class PathPlanning():
         for n in self.all_nodes:
             p = self.get_xy(n)
             min_dist = np.min(norm(p - self.event_points, axis=1))
-            if n in self.forbidden_nodes or min_dist < 0.2:
-                # print(n)
-                pass
-            else:
-                self.all_start_nodes.append(n)
+            if n in self.forbidden_nodes or min_dist < 0.2: pass #skip forbidden nodes
+            else: self.all_start_nodes.append(n) #add node to possible starting positions
         self.all_nodes_coords = np.array([self.get_xy(node) for node in self.all_nodes])
         self.all_start_nodes_coords = np.array([self.get_xy(node) for node in self.all_start_nodes])
 

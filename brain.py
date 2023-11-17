@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from stuff import *
+# SHOW_IMGS = False
 SHOW_IMGS = False
-# SHOW_IMGS = True
 
 import numpy as np
 import cv2 as cv
@@ -25,7 +25,7 @@ from environmental_data_simulator import EnvironmentalData
 
 END_NODE_SPEED_CHALLENGE = 458
 # CHECKPOINTS = [472,206,500,147,380]
-CHECKPOINTS = [472,206,500,147,380,321,340]
+CHECKPOINTS = [472,206,500,156,380,321,340]
 SPEED_CHALLENGE = False
 
 ALWAYS_USE_VISION_FOR_STOPLINES = True
@@ -590,7 +590,7 @@ class Brain:
                 print('Car position in stop line frame: ', car_position_slf)
             else:
                 if USE_ADVANCED_NETWORK_FOR_STOPLINES:
-                    _, e2, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=True)
+                    _, e2, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=SHOW_IMGS)
                 else:
                     self.detect.detect_stop_line(self.car.frame, SHOW_IMGS)
                     e2, _, _ = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
@@ -1069,7 +1069,7 @@ class Brain:
                     self.car.drive_speed(PARK_SEARCH_SPEED)
                     self.curr_state.var1 = (park_state, park_type, False)
 
-                sign, _, _, _ = self.detect.detect_sign(self.car.frame, show_ROI=True)
+                sign, _, _, _ = self.detect.detect_sign(self.car.frame, show_ROI=SHOW_IMGS)
                 park_sign_counter = self.curr_state.var2
                 parking_spot_reached = self.curr_state.var3
 

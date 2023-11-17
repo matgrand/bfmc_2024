@@ -29,7 +29,7 @@ map, _ = load_map()
 # PARAMETERS
 TARGET_FPS = 30.0
 sample_time = 0.01 # [s]
-DESIRED_SPEED = 0.4# [m/s] #.35
+DESIRED_SPEED = 0.35# [m/s] #.35
 SP_SPEED = 0.8 # [m/s]
 CURVE_SPEED = 0.6# [m/s]
 path_step_length = 0.01 # [m]
@@ -139,8 +139,7 @@ if __name__ == '__main__':
                 frame = car.frame.copy()
                 cv.imshow('frame', frame)
                 if cv.waitKey(1) == 27:
-                    cv.destroyAllWindows()
-                    break
+                    raise KeyboardInterrupt
             
             loop_time = time() - loop_start_time
             if loop_time < 1.0 / TARGET_FPS:
