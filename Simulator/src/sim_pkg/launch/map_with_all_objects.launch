@@ -1,12 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- 
   This code is an example and should not be used. 
   All elements are in the wrong positions and should be rearranged for the new map.
 -->
-<?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name"   value="$(find sim_pkg)/worlds/world_with_separators.world"/>
+    <arg name="world_name"   value="$(find sim_pkg)/worlds/world.world"/>
     <arg name="paused"       value="false"/>    
     <arg name="use_sim_time" value="true"/>
     <arg name="debug"        value="false"/>
