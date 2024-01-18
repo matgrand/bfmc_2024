@@ -11,7 +11,7 @@ material BFMC_MATERIAL
 
       texture_unit
 			{
- 				texture test_Medium.png
+ 				texture 2024_Small.png
 			}
     }
   }

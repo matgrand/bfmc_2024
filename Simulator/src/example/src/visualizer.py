@@ -19,7 +19,14 @@ REPO_PATH = dirname(dirname(dirname(dirname(dirname(os.path.abspath(__file__))))
 sys.path.append(REPO_PATH)
 from stuff import LENGTH, WIDTH, BACKTOWHEEL, WB
 SIMLATOR_DIR = join(REPO_PATH, 'Simulator')
-MAP_IMG_PATH = join(SIMLATOR_DIR, 'src/models_pkg/track/materials/textures/2024_VerySmall.png')
+
+#check if we need to use the 2024 map or the test map
+with open(join(SIMLATOR_DIR, 'src/models_pkg/track/materials/scripts/bfmc_track.material'), 'r') as f:
+    MAP_IMG_PATH = join(SIMLATOR_DIR, 'src/models_pkg/track/materials/textures/test_VerySmall.png')
+    for line in f:
+        if '2024' in line:
+            MAP_IMG_PATH = join(SIMLATOR_DIR, 'src/models_pkg/track/materials/textures/2024_VerySmall.png')
+            break
 assert exists(MAP_IMG_PATH), f'No map image found at {MAP_IMG_PATH}'
 
 PA = 20 #padding around the image

@@ -5,6 +5,8 @@ rm -rf devel build
 
 #remove the .gazebo directory in the home folder
 rm -rf ~/.gazebo
+rm -rf ~/.gazebo_gui
+rm -rf ~/.ros
 
 # Run catkin_make for the utils package
 catkin_make --pkg utils
