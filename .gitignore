@@ -9,3 +9,4 @@ Simulator/**/*.pyc
 stuff/__pycache__/__init__.cpython-38.pyc
 .vscode/*
 Simulator/src/models_pkg/track/materials/scripts/bfmc_track.material
+training_dss/*
