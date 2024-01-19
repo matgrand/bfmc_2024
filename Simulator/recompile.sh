@@ -1,4 +1,5 @@
 #!/bin/bash
+curr_path=$(pwd)
 
 # Remove the devel and build directories
 rm -rf devel build
@@ -8,6 +9,9 @@ rm -rf ~/.gazebo
 rm -rf ~/.gazebo_gui
 rm -rf ~/.ros
 
+#set 2024 map
+bash $curr_path/set_2024_map.sh
+
 # Run catkin_make for the utils package
 catkin_make --pkg utils
 
@@ -15,7 +19,6 @@ catkin_make --pkg utils
 catkin_make
 
 # Append lines to setup.bash
-curr_path=$(pwd)
 echo export GAZEBO_MODEL_PATH=\""$curr_path/src/models_pkg:\$GAZEBO_MODEL_PATH"\" >> devel/setup.bash
 echo export ROS_PACKAGE_PATH=\""$curr_path/src:\$ROS_PACKAGE_PATH"\" >> devel/setup.bash
 
