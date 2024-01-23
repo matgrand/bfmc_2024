@@ -30,6 +30,7 @@ class CarSim(Car):
         self.yaw_true = 0.0
         self.x_buffer = collections.deque(maxlen=5)
         self.y_buffer = collections.deque(maxlen=5)
+        self.top_frame = np.zeros((320, 320, 3), np.uint8)
 
         # PUBLISHERS AND SUBSCRIBERS
         # sub for commands to the simulated vehicle
@@ -43,12 +44,19 @@ class CarSim(Car):
         self.sub_lateral_son = rospy.Subscriber('/automobile/sonar2', Range, self.lateral_sonar_callback)
         self.bridge = CvBridge()
         self.sub_cam = rospy.Subscriber("/automobile/image_raw", Image, self.camera_callback)
+        self.sub_top = rospy.Subscriber("/automobile/image_top", Image, self.top_camera_callback)
 
     def camera_callback(self, data:Image) -> None:
         '''Receive and store camera frame
         :acts on: self.frame
         '''        
         self.frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
+
+    def top_camera_callback(self, data:Image) -> None:
+        '''Receive and store top camera frame
+        :acts on: self.top_frame
+        '''        
+        self.top_frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
 
     def sonar_callback(self, data:Range) -> None:
         '''Receive and store distance of an obstacle ahead 

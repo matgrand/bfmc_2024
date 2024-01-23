@@ -21,7 +21,6 @@ from controllerSP import ControllerSpeed
 from detection import Detection
 from environmental_data_simulator import EnvironmentalData
 
-
 END_NODE_SPEED_CHALLENGE = 458
 # CHECKPOINTS = [472,206,500,147,380]
 CHECKPOINTS = [472,206,500,156,380,321,340]
@@ -379,7 +378,7 @@ class Brain:
                     sleep(3.0)
                     can_generate_route = True
         else: can_generate_route = True # we assume to be in the correct node
-
+    
         if can_generate_route:
             print('Generating route...')
             #get start and end nodes from the chekpoint list
@@ -413,6 +412,10 @@ class Brain:
             if end_node == END_NODE_SPEED_CHALLENGE and SPEED_CHALLENGE:
                 self.switch_to_state(BRAINLESS)
             else: self.switch_to_state(LANE_FOLLOWING)
+        
+        if SHOW_IMGS:
+            cv.imshow('Path', cv.flip(self.pp.map, 0))
+            cv.waitKey(1)
 
     def end_state(self):
         self.activate_routines([SLOW_DOWN])
@@ -1434,7 +1437,6 @@ class Brain:
         print(f'output_speed: {output_speed:.2f}, output_angle: {np.rad2deg(output_angle):.2f}')
         self.car.drive(speed=output_speed, angle=np.rad2deg(output_angle))
 
-
     #=============== ROUTINES ===============#
     def follow_lane(self):
         e2, e3, point_ahead = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
@@ -1467,7 +1469,6 @@ class Brain:
             cv.imshow('brain_debug', debug_frame)
             cv.waitKey(1)
 
- 
         past_detections = self.routines[DETECT_STOP_LINE].var2
         if dist < STOP_LINE_APPROACH_DISTANCE-0.05: #-0.1 #network is more accurate in this range
             DETECTION_DEQUE_LENGTH = 50
