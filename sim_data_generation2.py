@@ -27,7 +27,6 @@ spath[:,0:2] += 2.5 #add 2.5 to all x and y values
 #concatenate path with itself to make it longer based on LAPS
 spath = np.tile(spath, (LAPS,1))
 
-
 #create yaw sequence
 yaws = np.zeros(spath.shape[0])
 for i in range(len(spath)-1):

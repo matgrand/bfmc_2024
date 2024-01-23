@@ -65,16 +65,6 @@ class Detection:
         frame = cv.Canny(frame, 100, 200)
         frame = cv.blur(frame, (3,3), 0) #worse than blur after 11,11
         frame = cv.resize(frame, IMG_SIZE)
-
-
-        # # add noise 1.5 ms 
-        # std = 50
-        # # std = np.random.randint(1, std)
-        # noisem = np.random.randint(0, std, frame.shape, dtype=np.uint8)
-        # frame = cv.subtract(frame, noisem)
-        # noisep = np.random.randint(0, std, frame.shape, dtype=np.uint8)
-        # frame = cv.add(frame, noisep)
-        
         
         images = frame
 
@@ -110,11 +100,11 @@ class Detection:
         lane_detection_time = 1000*(time()-start_time)
         self.avg_lane_detection_time = (self.avg_lane_detection_time*self.lane_cnt + lane_detection_time)/(self.lane_cnt+1)
         self.lane_cnt += 1
-        if show_ROI:
-            #edge
-            # frame = cv.Canny(frame, 150, 180)
-            cv.imshow('lane_detection', frame)
-            cv.waitKey(1)
+        # if show_ROI:
+        #     #edge
+        #     # frame = cv.Canny(frame, 150, 180)
+        #     cv.imshow('lane_detection', frame)
+        #     cv.waitKey(1)
         return e2, e3, est_point_ahead
 
     def detect_lane_ahead(self, frame, show_ROI=True, faster=False):
@@ -136,14 +126,6 @@ class Detection:
         frame = cv.Canny(frame, 100, 200)
         frame = cv.blur(frame, (3,3), 0) #worse than blur after 11,11
         frame = cv.resize(frame, IMG_SIZE)
-
-        # # add noise 1.5 ms 
-        # std = 50
-        # # std = np.random.randint(1, std)
-        # noisem = np.random.randint(0, std, frame.shape, dtype=np.uint8)
-        # frame = cv.subtract(frame, noisem)
-        # noisep = np.random.randint(0, std, frame.shape, dtype=np.uint8)
-        # frame = cv.add(frame, noisep)
         
         images = frame
 
@@ -166,7 +148,6 @@ class Detection:
         if not faster:
             # e2_flipped = output_flipped[0]
             e3_flipped = output_flipped[0]
-
             # e2 = (e2 - e2_flipped) / 2.0
             e3 = (e3 - e3_flipped) / 2.0
 
@@ -178,11 +159,11 @@ class Detection:
         lane_detection_time = 1000*(time()-start_time)
         self.avg_lane_detection_time = (self.avg_lane_detection_time*self.lane_cnt + lane_detection_time)/(self.lane_cnt+1)
         self.lane_cnt += 1
-        if show_ROI:
-            #edge
-            # frame = cv.Canny(frame, 150, 180)
-            cv.imshow('lane_detection', frame)
-            cv.waitKey(1)
+        # if show_ROI:
+        #     #edge
+        #     # frame = cv.Canny(frame, 150, 180)
+        #     cv.imshow('lane_detection', frame)
+        #     cv.waitKey(1)
         return e3, est_point_ahead
 
     def detect_stop_line(self, frame, show_ROI=True):
@@ -202,14 +183,6 @@ class Detection:
         frame = cv.blur(frame, (5,5), 0)#frame = cv.blur(frame, (3,3), 0) #worse than blur after 11,11
         frame = cv.resize(frame, IMG_SIZE)
 
-        # # # add noise 1.5 ms 
-        # std = 50
-        # # std = np.random.randint(1, std)
-        # noisem = np.random.randint(0, std, frame.shape, dtype=np.uint8)
-        # frame = cv.subtract(frame, noisem)
-        # noisep = np.random.randint(0, std, frame.shape, dtype=np.uint8)
-        # frame = cv.add(frame, noisep)
-
         blob = cv.dnn.blobFromImage(frame, 1.0, IMG_SIZE, 0, swapRB=True, crop=False)
         # assert blob.shape == (1, 1, IMG_SIZE[1], IMG_SIZE[0]), f"blob shape: {blob.shape}"
         self.stop_line_estimator.setInput(blob)
@@ -223,9 +196,9 @@ class Detection:
         stop_line_detection_time = 1000*(time()-start_time)
         self.avg_stop_line_detection_time = (self.avg_stop_line_detection_time*self.lane_cnt + stop_line_detection_time)/(self.lane_cnt+1)
         self.lane_cnt += 1
-        if show_ROI:
-            cv.imshow('stop_line_detection', frame)
-            cv.waitKey(1)
+        # if show_ROI:
+        #     cv.imshow('stop_line_detection', frame)
+        #     cv.waitKey(1)
         print(f"stop_line_detection dist: {dist:.2f}, in {stop_line_detection_time:.2f} ms")
         return dist
 
@@ -268,10 +241,10 @@ class Detection:
         stop_line_detection_time = 1000*(time()-start_time)
         self.avg_stop_line_detection_time = (self.avg_stop_line_detection_time*self.lane_cnt + stop_line_detection_time)/(self.lane_cnt+1)
         self.lane_cnt += 1
-        if show_ROI:
-            cv.imshow('stop_line_detection', frame)
-            cv.imwrite(f'sd/sd_{int(time()*1000)}.png', frame)
-            cv.waitKey(1)
+        # if show_ROI:
+        #     cv.imshow('stop_line_detection', frame)
+        #     cv.imwrite(f'sd/sd_{int(time()*1000)}.png', frame)
+        #     cv.waitKey(1)
         print(f"stop_line_detection dist: {dist:.2f}, in {stop_line_detection_time:.2f} ms")
         return stopline_x, stopline_y, stopline_angle
 

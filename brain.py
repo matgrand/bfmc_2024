@@ -1,10 +1,9 @@
 #!/usr/bin/python3
 from stuff import *
 # SHOW_IMGS = False
-SHOW_IMGS = False
+SHOW_IMGS = True
 
-import numpy as np
-import cv2 as cv
+import numpy as np, cv2 as cv
 from time import time, sleep
 from numpy.linalg import norm
 from collections import deque
@@ -157,7 +156,7 @@ assert not(ALWAYS_TRUST_GPS and ALWAYS_DISTRUST_GPS), 'ALWAYS_TRUST_GPS and ALWA
 GPS_DISTANCE_THRESHOLD_FOR_CONVERGENCE = 0.2 #distance between 2 consecutive measure of the gps for the kalmann filter to be considered converged
 GPS_SAMPLE_TIME = 0.25 #[s] time between 2 consecutive gps measurements
 GPS_CONVERGENCE_PATIANCE = 0 #2 #iterations to consider the gps converged
-GPS_TIMEOUT = 5.0 #[s] time to wait to have gps signal
+GPS_TIMEOUT = 2.0 #[s] time to wait to have gps signal
 
 #end state
 END_STATE_DISTANCE_THRESHOLD = 0.3 #[m] distance from the end of the path for the car to be considered at the end of the path
@@ -229,6 +228,8 @@ AVOID_ROADBLOCK_DISTANCE = 0.6 #[m]
 #CHECKS
 MAX_DIST_AWAY_FROM_LANE = 0.8 #[m] max distance from the lane to trip the state checker
 MAX_ERROR_ON_LOCAL_DIST = 0.05 #[m] max error on the local distance
+
+debug_frame = None
 
 #==============================================================
 #=========================== BRAIN ============================
@@ -639,13 +640,14 @@ class Brain:
             self.curr_state.just_switched = False
 
             if SHOW_IMGS:
-                img = self.car.frame.copy()
+                global debug_frame
+                debug_frame = self.car.frame.copy()
                 #project the whole path (true)
-                img, _ = project_onto_frame(img, self.car.pose(), self.pp.path, align_to_car=True, color=(0, 100, 0))
+                debug_frame, _ = project_onto_frame(debug_frame, self.car.pose(), self.pp.path, align_to_car=True, color=(0, 100, 0))
                 #project local path (estimated), it should match the true path
-                img, _ = project_onto_frame(img, self.car.pose(), local_path_cf, align_to_car=False)
-                cv.imshow('brain_debug', img)
-                cv.waitKey(1)
+                debug_frame, _ = project_onto_frame(debug_frame, self.car.pose(), local_path_cf, align_to_car=False)
+                cv.imshow('brain_debug', debug_frame)
+                # cv.waitKey(1)
                 self.curr_state.var2 = np.array([self.car.x_true, self.car.y_true]) #var2 hold original position
                 true_start_pos_wf = self.curr_state.var2
 
@@ -659,27 +661,22 @@ class Brain:
                 cv.circle(self.pp.map, m2pix(true_start_pos_wf), 30, (0, 255, 0), 5)
                 cv.imshow('Path', cv.flip(self.pp.map, 0))
                 cv.waitKey(1)
-                #debug
-                # self.car.drive_speed(0.0)
-                # sleep(SLEEP_AFTER_STOPPING)
-                # sleep(1.0)
-                cv.namedWindow('local_path', cv.WINDOW_NORMAL)
-                local_map_img = np.zeros_like(self.pp.map)
-                h = local_map_img.shape[0]
-                w = local_map_img.shape[1]
-                local_map_img[w//2-2:w//2+2, :] = 255
-                local_map_img[:, h//2-2:h//2+2] = 255
-
-                cv.circle(local_map_img, (w//2,h//2), 50, (255, 0, 255), 5)
-                for i in range(len(local_path_cf)):
-                    if (i%3 == 0):
-                        p = local_path_cf[i]
-                        pix = m2pix(p)
-                        pix = (int(pix[0]+w//2), int(pix[1]-h//2))
-                        cv.circle(local_map_img, pix, 10, (0, 150, 150), -1)
-                cv.imshow('local_path', local_map_img)
-                cv.waitKey(1)  
-                self.curr_state.var3 = local_map_img
+                # local_map_img = np.zeros_like(self.pp.map)
+                # self.curr_state.var3 = local_map_img
+                # cv.namedWindow('local_path', cv.WINDOW_NORMAL)
+                # h = local_map_img.shape[0]
+                # w = local_map_img.shape[1]
+                # local_map_img[w//2-2:w//2+2, :] = 255
+                # local_map_img[:, h//2-2:h//2+2] = 255
+                # cv.circle(local_map_img, (w//2,h//2), 50, (255, 0, 255), 5)
+                # for i in range(len(local_path_cf)):
+                #     if (i%3 == 0):
+                #         p = local_path_cf[i]
+                #         pix = m2pix(p)
+                #         pix = (int(pix[0]+w//2), int(pix[1]-h//2))
+                #         cv.circle(local_map_img, pix, 10, (0, 150, 150), -1)
+                # cv.imshow('local_path', local_map_img)
+                # cv.waitKey(1)  
 
         D = POINT_AHEAD_DISTANCE_LOCAL_TRACKING
         #track the local path using simple pure pursuit
@@ -700,19 +697,18 @@ class Brain:
         local_path_cf = local_path_cf @ rot_matrix
 
         if SHOW_IMGS:
-            local_map_img = self.curr_state.var3
-            h = local_map_img.shape[0]
-            w = local_map_img.shape[1]
+            # local_map_img = self.curr_state.var3
+            # h, w = local_map_img.shape[:2]
             angle = self.car.yaw_loc_o # + self.car.yaw_loc
             rot_matrix_w = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
             # show car position in the local frame (from the encoder)
-            cv.circle(local_map_img, (m2pix(car_pos_loc)[0]+w//2, m2pix(car_pos_loc)[1]-h//2), 5, (255, 0, 255), 2)
+            # cv.circle(local_map_img, (m2pix(car_pos_loc)[0]+w//2, m2pix(car_pos_loc)[1]-h//2), 5, (255, 0, 255), 2)
             # show the true position to check if they match, translated wrt starting position into the local frame
             true_start_pos_wf = self.curr_state.var2
             true_pos_loc = np.array([self.car.x_true, self.car.y_true]) - true_start_pos_wf
             true_pos_loc = true_pos_loc @ rot_matrix_w
-            cv.circle(local_map_img, (m2pix(true_pos_loc)[0]+w//2, m2pix(true_pos_loc)[1]-h//2), 7, (0, 255, 0), 2)
-            cv.imshow('local_path', local_map_img)
+            # cv.circle(local_map_img, (m2pix(true_pos_loc)[0]+w//2, m2pix(true_pos_loc)[1]-h//2), 7, (0, 255, 0), 2)
+            # cv.imshow('local_path', local_map_img)
             true_start_pos_wf = self.curr_state.var2
             car_pos_loc_rot_wf = car_pos_loc @ rot_matrix_w.T
             car_pos_wf = true_start_pos_wf + car_pos_loc_rot_wf
@@ -737,10 +733,10 @@ class Brain:
         else: #we are still on the path
             point_ahead = local_path_cf[idx_point_ahead]
             if SHOW_IMGS:
-                img = self.car.frame.copy()
-                img, _ = project_onto_frame(img, self.car.pose(), local_path_cf, align_to_car=False)
-                img, _ = project_onto_frame(img, self.car.pose(), point_ahead, align_to_car=False, color=(0,0,255))
-                cv.imshow('brain_debug', img)
+                debug_frame = self.car.frame.copy()
+                debug_frame, _ = project_onto_frame(debug_frame, self.car.pose(), local_path_cf, align_to_car=False)
+                debug_frame, _ = project_onto_frame(debug_frame, self.car.pose(), point_ahead, align_to_car=False, color=(0,0,255))
+                cv.imshow('brain_debug', debug_frame)
                 cv.waitKey(1)
             gains = [0.0, .0, 1.2, 0.0] #k1,k2,k3,k3D
             e2 = local_path_cf[idx_car_on_path][1] 
@@ -1443,10 +1439,11 @@ class Brain:
     def follow_lane(self):
         e2, e3, point_ahead = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
         if SHOW_IMGS:
-            img = self.car.frame.copy()
-            img, proj = project_onto_frame(img, self.car.pose(), point_ahead, align_to_car=False, color=(255,0,255), thickness=3)
-            img = cv.line(img, (int(proj[0]), int(proj[1])), (int(img.shape[1]/2), int(img.shape[0])), (255,0,255), 2)
-            cv.imshow('brain_debug', img)
+            global debug_frame
+            debug_frame = self.car.frame.copy()
+            debug_frame, proj = project_onto_frame(debug_frame, self.car.pose(), point_ahead, align_to_car=False, color=(255,0,255), thickness=3)
+            debug_frame = cv.line(debug_frame, (int(proj[0]), int(proj[1])), (int(debug_frame.shape[1]/2), int(debug_frame.shape[0])), (255,0,255), 2)
+            cv.imshow('brain_debug', debug_frame)
             cv.waitKey(1)
         speed, angle_ref = self.controller.get_control(e2, e3, 0, self.desired_speed)
         angle_ref = np.rad2deg(angle_ref)
@@ -1455,10 +1452,21 @@ class Brain:
     def detect_stop_line(self):
         #update the variable self.detect.est_dist_to_stop_line
         if USE_ADVANCED_NETWORK_FOR_STOPLINES:
-            stopline_x, _, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=SHOW_IMGS)
+            stopline_x, _, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=SHOW_IMGS) 
             dist = stopline_x + 0.05
         else:
             dist = self.detect.detect_stop_line(self.car.frame, show_ROI=SHOW_IMGS)
+        
+        global debug_frame
+        if SHOW_IMGS and debug_frame is not None and dist is not None:
+            #draw an horizontal line at the stop line
+            sl_pos = np.array([dist+.3, 0.0])
+            _, proj = project_onto_frame(debug_frame, self.car.pose(), sl_pos, align_to_car=False, color=(0,0,255), thickness=1)
+            x1, x2 = int(debug_frame.shape[1]/2) - 60, int(debug_frame.shape[1]/2) + 60
+            debug_frame = cv.line(debug_frame, (x1, int(proj[1])), (x2, int(proj[1])), (0,0,255), 2)
+            cv.imshow('brain_debug', debug_frame)
+            cv.waitKey(1)
+
  
         past_detections = self.routines[DETECT_STOP_LINE].var2
         if dist < STOP_LINE_APPROACH_DISTANCE-0.05: #-0.1 #network is more accurate in this range
@@ -1467,11 +1475,9 @@ class Brain:
             # var1 holds last detection time
             last_detection_time = self.routines[DETECT_STOP_LINE].var1 if self.routines[DETECT_STOP_LINE].var1 is not None else time() - 1.0
             curr_time = time()
-
             if curr_time - last_detection_time > 0.5:
                 # var2 holds the list of past detections, reset 
                 self.routines[DETECT_STOP_LINE].var2 = past_detections = deque(maxlen=DETECTION_DEQUE_LENGTH)
-            
             adapted_distance = dist + self.car.encoder_distance
             past_detections.append(adapted_distance)
             self.stop_line_distance_median = np.median(past_detections) if len(past_detections) > SAMPLE_BEFORE_CONFIDENCE else None #NOTE consider also mean

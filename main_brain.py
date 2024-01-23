@@ -49,35 +49,42 @@ cap.set(cv.CAP_PROP_FRAME_WIDTH, 320)
 cap.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
 cap.set(cv.CAP_PROP_FPS, 30)
 
+def kill(car:CarSim, msg:str):
+    print(msg)
+    car.stop()
+    sleep(.5)
+    cv.destroyAllWindows()
+    exit(0)
+
 if __name__ == '__main__':
-    os.system('rosrun example visualizer.py &') #run visualization node
-
-    if SHOW_IMGS:
-        cv.namedWindow('frame', cv.WINDOW_NORMAL)
-        cv.resizeWindow('frame',640,480)
-        # show windows
-        cv.namedWindow('Path', cv.WINDOW_NORMAL)
-        cv.resizeWindow('Path', 600, 600)
-        cv.namedWindow('Map', cv.WINDOW_NORMAL)
-        cv.resizeWindow('Map', 600, 600)
-
-
     # init the car data
     os.system('rosservice call /gazebo/reset_simulation') if SIMULATOR_FLAG else None
     os.system('rosservice call gazebo/unpause_physics') if SIMULATOR_FLAG else None
     # sleep(1.5)
     if SIMULATOR_FLAG: car = CarSim()
     else: car = CarPi()
+    car.stop()
     sleep(1.5)
     car.encoder_distance = 0.0
-    
+    os.system('rosrun example visualizer.py &') #run visualization node
+
+    if SHOW_IMGS:
+        # cv.namedWindow('frame', cv.WINDOW_NORMAL)
+        # cv.resizeWindow('frame',640,480)
+        # show windows
+        cv.namedWindow('Path', cv.WINDOW_NORMAL)
+        cv.resizeWindow('Path', 600, 600)
+        # cv.namedWindow('Map', cv.WINDOW_NORMAL)
+        # cv.resizeWindow('Map', 600, 600)
+
+
     #stop the car with ctrl+c
     def handler(signum, frame):
-        print("Exiting ...")
+        print("Exiting...")
         car.stop()
         os.system('rosservice call gazebo/pause_physics') if SIMULATOR_FLAG else None 
         cv.destroyAllWindows()
-        sleep(.99)
+        sleep(.3)
         exit()
     signal.signal(signal.SIGINT, handler)
     
@@ -97,60 +104,53 @@ if __name__ == '__main__':
     #initiliaze the brain
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, path_planner=pp, desired_speed=DESIRED_SPEED)
 
-    if SHOW_IMGS:
-        map1 = map.copy()
-        draw_car(map1, car.pose())
-        cv.imshow('Map', cv.flip(map1, 0))
-        cv.waitKey(1)
-    try:
-        car.stop()
-        loop_time = 1.0 / TARGET_FPS
-        while not rospy.is_shutdown():
-            loop_start_time = time()
-            if SHOW_IMGS:
-                map1 = map.copy()
-                draw_car(map1, car.est_pose(), color=(180,0,0))
-                color=(255,0,255) if car.trust_gps else (100,0,100)
-                draw_car(map1, car.pose(), color=(0,180,0))
-                draw_car(map1, car.est_pose(), color=color)
-                if len(brain.pp.path) > 0: 
-                    cv.circle(map1, m2pix(brain.pp.path[int(brain.car_dist_on_path*100)]), 10, (150,50,255), 3) 
-                cv.imshow('Map', cv.flip(map1, 0))
-                cv.waitKey(1)
+    # if SHOW_IMGS:
+    #     map1 = map.copy()
+    #     draw_car(map1, car.pose())
+    #     cv.imshow('Map', cv.flip(map1, 0))
+    #     cv.waitKey(1)
 
-            if not SIMULATOR_FLAG:
-                ret, frame = cap.read()
-                brain.car.frame = frame
-                if not ret:
-                    print("No image from camera")
-                    frame = np.zeros((240, 320, 3), np.uint8)
-                    continue
+    car.stop()
+    loop_time = 1.0 / TARGET_FPS
+    while not rospy.is_shutdown():
+        loop_start_time = time()
+        # if SHOW_IMGS:
+        #     map1 = map.copy()
+        #     draw_car(map1, car.est_pose(), color=(180,0,0))
+        #     color=(255,0,255) if car.trust_gps else (100,0,100)
+        #     draw_car(map1, car.pose(), color=(0,180,0))
+        #     draw_car(map1, car.est_pose(), color=color)
+        #     if len(brain.pp.path) > 0: 
+        #         cv.circle(map1, m2pix(brain.pp.path[int(brain.car_dist_on_path*100)]), 10, (150,50,255), 3) 
+        #     cv.imshow('Map', cv.flip(map1, 0))
+        #     cv.waitKey(1)
 
-            # RUN BRAIN
-            brain.run()
+        if not SIMULATOR_FLAG:
+            ret, frame = cap.read()
+            brain.car.frame = frame
+            if not ret:
+                print("No image from camera")
+                frame = np.zeros((240, 320, 3), np.uint8)
+                continue
 
-            ## DEBUG INFO
-            print(car)
-            print(f'Lane detection time = {dd.avg_lane_detection_time:.1f} [ms]')
-            # print(f'Sign detection time = {dd.avg_sign_detection_time:.1f} [ms]')
-            print(f'FPS = {1/loop_time:.1f}, capped at {TARGET_FPS}')
-
-            if SHOW_IMGS:
-                frame = car.frame.copy()
-                cv.imshow('frame', frame)
-                if cv.waitKey(1) == 27:
-                    raise KeyboardInterrupt
+        # RUN BRAIN
+        brain.run()
             
-            loop_time = time() - loop_start_time
-            if loop_time < 1.0 / TARGET_FPS:
-                sleep(1.0 / TARGET_FPS - loop_time)
+        ## DEBUG INFO
+        print(car)
+        print(f'Lane detection time = {dd.avg_lane_detection_time:.1f} [ms]')
+        # print(f'Sign detection time = {dd.avg_sign_detection_time:.1f} [ms]')
+        print(f'FPS = {1/loop_time:.1f}, capped at {TARGET_FPS}')
 
-    except KeyboardInterrupt:
-        print("Shutting down")
-        car.stop()
-        sleep(.5)
-        cv.destroyAllWindows()
-        exit(0)
-    except rospy.ROSInterruptException:
-        pass
+        # if SHOW_IMGS:
+        #     frame = car.frame.copy()
+        #     cv.imshow('frame', frame)
+        #     if cv.waitKey(1) == 27:
+        #         raise KeyboardInterrupt
+        
+        loop_time = time() - loop_start_time
+        # if loop_time < 1.0 / TARGET_FPS:
+        #     sleep(1.0 / TARGET_FPS - loop_time)
+
+        sleep(max(0.01, 1.0 / TARGET_FPS - loop_time))
       
