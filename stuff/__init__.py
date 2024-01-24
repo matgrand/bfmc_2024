@@ -251,11 +251,6 @@ def ros_check_run(launch='car_with_map.launch', map='2024'):
     '''
     assert map in ['2024', 'test'], f'invalid map: {map}'
     assert exists(join(dirname(dirname(__file__)), 'Simulator/src/sim_pkg/launch', launch)), f'launch file not found: {launch}'
-    # source the setup.bash file
-    setup_bash_path = join(dirname(dirname(__file__)), "Simulator", "devel", "setup.bash")
-    assert exists(setup_bash_path), f'setup.bash not found: {setup_bash_path}, did forget to cmpile: do:\n bash Simulator/recompile.sh'
-    sp.run(f'. {setup_bash_path}', shell=True)
-    #check if the ros master is running
     if 'ERROR' in sp.run('rostopic list', shell=True, capture_output=True).stderr.decode('utf-8'):
         print(f'Ros master not running, starting it...')
         #set the map and run ros master with the launch file

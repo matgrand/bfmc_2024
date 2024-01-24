@@ -221,7 +221,7 @@ encoder_velocity (filtered):\t{:.2f} ({:.2f})\t\t[m/s]
 {:#^65s}
 sonar_distance (filtered):\t{:.3f} ({:.3f})\t\t[m]
 '''
-        return description.format(' POSITION ', self.x_gps, self.y_gps,\
+        return description.format(' POSITION ', self.x_true, self.y_true,\
                                     ' ESTIMATION ', self.x_est, self.y_est, np.rad2deg(self.yaw_est),\
                                     ' LOCAL POSITION ', self.x_loc, self.y_loc, np.rad2deg(self.yaw_loc), self.dist_loc,\
                                     ' IMU ', self.roll_deg, self.pitch_deg, self.yaw_deg, self.accel_x, self.accel_y, self.accel_z, self.gyrox, self.gyroy, self.gyroz,\

@@ -7,7 +7,8 @@ try:
     import rospy as ros
 except Exception as e:
     print(f'excepion: {e}')
-    print(f'ros not installed, or not sourced, remember to to:\n bash Simulator/recompile.sh\n source Simulator/devel/setup.bash\n or add it to your ~/.bashrc file') 
+    print(f'ros not sourced or not installed, remember: to install:\n bash Simulator/recompile.sh\nto source write the following line in every terminal you open or add it to your bashrc file:\n source Simulator/devel/setup.bash\n\n') 
+    exit()
 
 #################################################################################################################################################################
 #################################################################################################################################################################

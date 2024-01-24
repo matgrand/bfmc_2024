@@ -6,7 +6,13 @@ Repo for Bosch Future Mobility Challenge 2024, Dei-Unipd Team
 Initial steps/requirements:
 - Operating system: [Ubuntu 20.04](https://ubuntu.com/tutorials/install-ubuntu-desktop#1-overview)
 - Python >= 3.8 (install in virtual environment recommended)
-- [ROS Noetic](https://wiki.ros.org/noetic/Installation/Ubuntu)
+- [ROS Noetic](https://wiki.ros.org/noetic/Installation/Ubuntu), with the following commands:
+```bash
+sudo apt update
+sudo apt install ros-noetic-desktop-full
+echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
 
 Install python packages, open a terminal in this directory (with the virtual environment activated)
 and run:
@@ -26,16 +32,8 @@ To automatically source the sim, add the following lines to your ~/.bashrc file
 source /your/repo/dir/bfmc_2024/Simulator/devel/setup.bash
 ```
 with ```/your/repo/dir/``` being the path to the directory where you cloned the repo.
+If it is not already there, the script will also ask you to add the line to your ```~/.bashrc``` file, if you want to do it type ```y```.
 
-In order to use the simulator, you need to source the workspace, using the line above.
-To do so, open a terminal and run:
-```bash
-source /your/repo/dir/bfmc_2024/Simulator/devel/setup.bash
-```
-
-To avoid sourcing the workspace every time, you can add the line to your ~/.bashrc file. (You can do
-so by running `nano ~/.bashrc` and adding the line at the end of the file, note: you need to close
-and reopen the terminal for the changes to take effect).
 
 ## Running the simulator
 To run the simulator, open a terminal, source the workspace and run:
@@ -65,11 +63,8 @@ rosrun example control.py
 ## Competition example
 To run the competition example, close all terminals, open a new one, source the workspace and run:
 ```bash
-roslaunch sim_pkg car_with_map.launch 
-```
-In another terminal, wait for the simulation to start, then source the workspace and run:
-```bash
 python main_brain.py
 ```
+This will start the simulator in a different terminal, and will run the main brain.
 You should see the car going around the map, performing various tasks.
 
