@@ -32,22 +32,6 @@ def p2cv(p, k=K_VERYSMALL): # point in the shape of np.array([x,y]) gets convert
     assert p.shape == (2,), f'p shape: {p.shape}'
     return xy2cv(p[0], p[1], k)
 
-# #function to draw the car on the map
-# def draw_car(map, x, y, α, color=(0, 255, 0),  draw_body=True):
-#     car_length = 0.45-0.22 #m
-#     car_width = 0.2 #m
-#     #find 4 corners not rotated car_width
-#     corners = np.array([[-0.22, car_width/2],
-#                         [car_length, car_width/2],
-#                         [car_length, -car_width/2],
-#                         [-0.22, -car_width/2]])
-#     #rotate corners
-#     rot_matrix = np.array([[np.cos(α), -np.sin(α)],[np.sin(α), np.cos(α)]])
-#     corners = corners @ rot_matrix.T
-#     corners = corners + np.array([x,y]) #add car position
-#     if draw_body: cv.polylines(map, [m2pix(corners)], True, color, 3, cv.LINE_AA) 
-#     return map
-
 def get_point_ahead(x,y,path,d=PP_DA):
     """Returns the point ahead of the car on the path"""
     p = np.array([x,y], dtype=np.float32) #car position
@@ -102,6 +86,7 @@ def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
 def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,255), thickness=2):
     assert isinstance(cp, Pose)
     #check if its a single point
+    assert points.shape[-1] == 2, f'points must be (2,), got {points.shape}'
     single_dim = False
     if points.ndim == 1:
         points = points[np.newaxis,:]
@@ -109,7 +94,7 @@ def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,2
     num_points = points.shape[0]
     if points[0].shape == (2,): #if points are 2d, add z coordinate
         points = np.concatenate((points, -CAM_Z*np.ones((num_points,1))), axis=1) 
-
+    
     #rotate the points around the z axis
     if align_to_car: points_cf = to_car_frame(points, cp, 3)
     else: points_cf = points
@@ -155,31 +140,75 @@ def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,2
         return frame, proj_points[0]
     return frame, proj_points
 
+FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.18,'z':CAM_Z, 'w':320, 'h':240}
+TOP_CAM = {'fov':CAM_FOV,'θ':-0.028,'x':1-0.18,'z':3.5, 'w':240, 'h':240}
+
+def project_onto_frame2(cp:Pose, points, align_to_car=True, cam=FRONT_CAM):
+    '''function to project points onto the camera frame, returns the points in pixel coordinates'''
+    assert isinstance(cp, Pose)
+    assert isinstance(points, np.ndarray), f'points must be np.ndarray, got {type(points)}'
+    assert points.shape[-1] == 2, f'points must be (something,2), got {points.shape}'
+    assert points.ndim <= 2, f'points must be (something,2), got {points.shape}'
+    x,y,ψ = cp.x, cp.y, cp.ψ #car position and yaw
+    fov, θ, xc, zc, w, h = cam['fov'], cam['θ'], cam['x'], cam['z'], cam['w'], cam['h']
+    psh, pndim = points.shape, points.ndim #points shape and dimension
+    pts = points.reshape(-1,2) #flatten points
+    # convert to 3d points
+    pts = np.concatenate((pts, np.zeros((pts.shape[0],1))), axis=1)
+    if align_to_car: pts = to_car_frame(pts, cp, 3) # move and rotate points to the car frame
+    # rotate the points around the relative y axis, pitch
+    R = np.array([[np.cos(θ), 0, np.sin(θ)], [0, 1, 0], [-np.sin(θ), 0, np.cos(θ)]])
+    pts = pts @ R.T
+    # project the points onto the camera frame
+    ppts = np.array([[-p[1]/p[0], -p[2]/p[0]] for p in pts]) 
+    # convert to pixel coordinates
+    ppts = h*ppts + np.array([w//2, h//2]) 
+    # convert to integer
+    ppts = np.round(ppts).astype(np.int32)
+    # check if the points are in the camera frame
+    ppts = ppts[(ppts[:,0] >= 0) & (ppts[:,0] < w) & (ppts[:,1] >= 0) & (ppts[:,1] < h)]
+    if len(ppts) == 0: return None #no points in front of the car
+    if pndim == 1: return ppts[0] #return a single point
+    return ppts #return multiple points
+
+
+
+def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,255), thickness=2):
+    proj_points = project_onto_frame2(cp, points, align_to_car)
+    if proj_points is None: return frame, None #no points in front of the car
+    print(f'0 proj_points.shape = {proj_points.shape}\nproj_points = {proj_points}')
+    #reshape the points
+    psh = proj_points.shape
+    ppts = proj_points.reshape(-1,2)
+    # draw the points
+    for p in ppts:
+        assert p.shape == (2,), f"projection point has wrong shape: {p.shape}"
+        # print(f'p = {p}')
+        p1 = (int(round(p[0])), int(round(p[1])))
+        # print(f'p = {p}')
+        #check if the point is in the frame
+        assert p1[0] >= 0 and p1[0] < 320 and p1[1] >= 0 and p1[1] < 240, f'point not in frame: {p1}'
+        cv.circle(frame, p1, thickness, color, -1)
+    print(f'1 proj_points.shape = {psh}\nproj_points = {proj_points}')
+    return frame, proj_points.reshape(psh)
+
 def to_car_frame(points, cp:Pose, return_size=3):
     assert isinstance(cp, Pose)
-    #check if its a single point
-    single_dim = False
-    if points.ndim == 1:
-        points = points[np.newaxis,:]
-        single_dim = True
-    x, y, ψ = cp.x, cp.y, cp.ψ
-    if points.shape[1] == 3:
-        points_cf = points - np.array([x,y,0])
-        rot_matrix = np.array([[np.cos(ψ), -np.sin(ψ), 0],[np.sin(ψ), np.cos(ψ), 0 ], [0,0,1]])
-        out = points_cf @ rot_matrix
-        if return_size == 2:
-            out = out[:,:2]
-        assert out.shape[1] == return_size, "wrong size, got {}".format(out.shape[1])
-    elif points.shape[1] == 2:
-        points_cf = points - np.array([x,y]) 
-        rot_matrix = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]])
-        out = points_cf @ rot_matrix
-        if return_size == 3:
-            out = np.concatenate((out, np.zeros((out.shape[0],1))), axis=1)
-        assert out.shape[1] == return_size, "wrong size, got {}".format(out.shape[1])
-    else: raise ValueError("points must be (2,), or (3,)")
-    if single_dim: return out[0]
-    else: return out
+    assert isinstance(points, np.ndarray), f'points must be np.ndarray, got {type(points)}'
+    assert points.shape[-1] == 2 or points.shape[-1] == 3, f'points must be (something,2 or 3), got {points.shape}'
+    assert return_size == 2 or return_size == 3, f'return_size must be 2 or 3, got {return_size}'
+    psh = points.shape #points shape
+    points = points.reshape(-1, psh[-1]) #flatten points
+    x, y, ψ = cp.x, cp.y, cp.ψ #car position and yaw
+    if psh[-1] == 3: # if points are 3d, remove z coordinate
+        zs = points[:,-1]
+        points = points[:,:-1]
+    else: zs = np.zeros(points.shape[0])
+    points_cf = points - np.array([x,y]) #move points to the origin of the car frame
+    rot_matrix = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]]) #rotation matrix
+    out = points_cf @ rot_matrix #rotate points
+    if return_size == 3: out = np.concatenate((out, zs[:,np.newaxis]), axis=1) #add z coordinate
+    return out.reshape(psh)
 
 def draw_bounding_box(frame, bounding_box, color=(0,0,255)):
     x,y,x2,y2 = bounding_box
@@ -190,39 +219,7 @@ def draw_bounding_box(frame, bounding_box, color=(0,0,255)):
 def my_softmax(x):
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
-def project_stopline(frame, cp:Pose, stopline_x, stopline_y, car_angle_to_stopline, color=(0,200,0)):
-    points = np.zeros((50,2), dtype=np.float32)
-    points[:,1] = np.linspace(-0.19, 0.19, 50)
-    slp_cf = np.array([stopline_x+0.35, stopline_y])
-    rot_matrix = np.array([[np.cos(car_angle_to_stopline), -np.sin(car_angle_to_stopline)], [np.sin(car_angle_to_stopline), np.cos(car_angle_to_stopline)]])
-    points = points @ rot_matrix #rotation
-    points = points + slp_cf #translation
-    frame, proj_points = project_onto_frame(frame, cp, points, align_to_car=False, color=color)
-    # frame = cv.polylines(frame, [proj_points], False, color, 2)
-    return frame, proj_points
-
 def get_curvature(points, v_des=0.0):
-    #OLD VERSION
-    # # calculate curvature 
-    # local_traj = points
-    # #get length
-    # path_length = 0
-    # for i in range(len(points)-1):
-    #     x1,y1 = points[i]
-    #     x2,y2 = points[i+1]
-    #     path_length += np.hypot(x2-x1,y2-y1) 
-    # #time
-    # tot_time = path_length / v_des
-    # local_time = np.linspace(0, tot_time, len(local_traj))
-    # dx_dt = np.gradient(local_traj[:,0], local_time)
-    # dy_dt = np.gradient(local_traj[:,1], local_time)
-    # dp_dt = np.gradient(local_traj, local_time, axis=0)
-    # v = np.linalg.norm(dp_dt, axis=1)
-    # ddx_dt = np.gradient(dx_dt, local_time)
-    # ddy_dt = np.gradient(dy_dt, local_time)
-    # curv = (dx_dt*ddy_dt-dy_dt*ddx_dt) / np.power(v,1.5)
-    # avg_curv = np.mean(curv)
-    # return avg_curv
     diff = points[1:] - points[:-1]
     distances = np.linalg.norm(diff, axis=1)
     d = np.mean(distances)

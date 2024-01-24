@@ -1444,7 +1444,7 @@ class Brain:
             global debug_frame
             debug_frame = self.car.frame.copy()
             debug_frame, proj = project_onto_frame(debug_frame, self.car.pose(), point_ahead, align_to_car=False, color=(255,0,255), thickness=3)
-            debug_frame = cv.line(debug_frame, (int(proj[0]), int(proj[1])), (int(debug_frame.shape[1]/2), int(debug_frame.shape[0])), (255,0,255), 2)
+            if proj is not None: debug_frame = cv.line(debug_frame, proj, (int(debug_frame.shape[1]/2), int(debug_frame.shape[0])), (255,0,255), 2)
             cv.imshow('brain_debug', debug_frame)
             cv.waitKey(1)
         speed, angle_ref = self.controller.get_control(e2, e3, 0, self.desired_speed)
@@ -1462,7 +1462,7 @@ class Brain:
         global debug_frame
         if SHOW_IMGS and debug_frame is not None and dist is not None:
             #draw an horizontal line at the stop line
-            sl_pos = np.array([dist+.3, 0.0])
+            sl_pos = np.array([dist+.3, 0.0]) # stop line position in car frame
             color, th = ((0,0,255), 4) if dist < 0.5 else ((0,0,125), 2)
             _, proj = project_onto_frame(debug_frame, self.car.pose(), sl_pos, align_to_car=False, color=color, thickness=th)
             x1, x2 = int(debug_frame.shape[1]/2) - 60, int(debug_frame.shape[1]/2) + 60
