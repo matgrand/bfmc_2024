@@ -1463,9 +1463,10 @@ class Brain:
         if SHOW_IMGS and debug_frame is not None and dist is not None:
             #draw an horizontal line at the stop line
             sl_pos = np.array([dist+.3, 0.0])
-            _, proj = project_onto_frame(debug_frame, self.car.pose(), sl_pos, align_to_car=False, color=(0,0,255), thickness=1)
+            color, th = ((0,0,255), 4) if dist < 0.5 else ((0,0,125), 2)
+            _, proj = project_onto_frame(debug_frame, self.car.pose(), sl_pos, align_to_car=False, color=color, thickness=th)
             x1, x2 = int(debug_frame.shape[1]/2) - 60, int(debug_frame.shape[1]/2) + 60
-            debug_frame = cv.line(debug_frame, (x1, int(proj[1])), (x2, int(proj[1])), (0,0,255), 2)
+            debug_frame = cv.line(debug_frame, (x1, int(proj[1])), (x2, int(proj[1])), color, th)
             cv.imshow('brain_debug', debug_frame)
             cv.waitKey(1)
 
@@ -1588,23 +1589,23 @@ class Brain:
                 if self.conditions[CAR_ON_PATH]:
                     self.car_dist_on_path = np.argmin(norm(self.pp.path - est_pos, axis=1))*0.01 #NOTE assume step length is 0.01 #NOTE 2: Assumes no self loops in the path 
                     self.car_dist_on_path += dist_delay_increment
+    
     #===================== STATE MACHINE MANAGEMENT =====================#
     def run(self):
         print('\n' * gts().lines, end='')
         print('\033[F' * gts().lines, end='')
-        print('==========================================================================')
+        print('============= STATE MACHINE ==============================================')
         print(f'STATE:      {self.curr_state}')
         print(f'NEXT_EVENT: {self.next_event} - PREV: {self.prev_event}')
         print(f'ROUTINES:   {self.active_routines_names+ALWAYS_ON_ROUTINES}')
         print(f'CONDITIONS: {self.conditions}')
-        print('==========================================================================')
+        print(self.car)
+        print('============= DEBUG INFO =================================================')
         self.run_current_state()
         print(f'CURR_SIGN: {self.curr_sign}')
         print('==========================================================================')
-        print()
         self.run_routines()
         print('==========================================================================')
-        print()
 
     def run_current_state(self):
         self.curr_state.run()

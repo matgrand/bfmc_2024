@@ -118,7 +118,7 @@ def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,2
     angles = np.arctan2(points_cf[:,1], points_cf[:,0])
     diff_angles = diff_angle(angles, 0.0) #car yaw
     rel_pos_points = []
-    for i, point in enumerate(points):
+    for i, _ in enumerate(points):
         if np.abs(diff_angles[i]) < CAM_FOV/2:
             rel_pos_points.append(points_cf[i])
     rel_pos_points = np.array(rel_pos_points)

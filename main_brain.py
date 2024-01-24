@@ -41,23 +41,23 @@ dist_point_ahead= 0.35 #distance of the point ahead in m
 ff_curvature = 0.0 # feedforward gain
 
 #load camera with opencv
-cap = cv.VideoCapture(0)
-cap.set(cv.CAP_PROP_FRAME_WIDTH, 320)
-cap.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
-cap.set(cv.CAP_PROP_FPS, 30)
+if not SIMULATOR_FLAG:
+    cap = cv.VideoCapture(0)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, 320)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
+    cap.set(cv.CAP_PROP_FPS, 30)
 
 if __name__ == '__main__':
-    ros_check_run(launch='car_with_map.launch', map='2024')
-
-    # init the car data
-    sp.run('rosservice call gazebo/pause_physics', shell=True) if SIMULATOR_FLAG else None
-    sp.run('rosservice call /gazebo/reset_simulation', shell=True) if SIMULATOR_FLAG else None
-    # sleep(1.5)
-    if SIMULATOR_FLAG: car = CarSim()
+    if SIMULATOR_FLAG: 
+        ros_check_run(launch='car_with_map.launch', map='2024')
+        sp.run('rosservice call gazebo/pause_physics', shell=True) 
+        sp.run('rosservice call /gazebo/reset_simulation', shell=True) 
+        #init car
+        car = CarSim()
     else: 
         raise NotImplementedError('Not implemented for PI')
         car = CarPi()
-    sleep(1.5)
+    sleep(.5)
     car.encoder_distance = 0.0
 
     # sp.run('rosrun example visualizer.py &', shell=True) #run visualization node
@@ -94,13 +94,14 @@ if __name__ == '__main__':
     #initiliaze the brain
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, path_planner=pp, desired_speed=DESIRED_SPEED)
 
-    sp.run('rosservice call gazebo/unpause_physics', shell=True) if SIMULATOR_FLAG else None
+    if SIMULATOR_FLAG: sp.run('rosservice call gazebo/unpause_physics', shell=True)
     car.stop()
     loop_time = 1.0 / TARGET_FPS
+    # main loop
     while not ros.is_shutdown():
-        loop_start_time = time()
+        loop_start_time = time() #start time of the loop
 
-        if not SIMULATOR_FLAG:
+        if not SIMULATOR_FLAG: #PI
             ret, frame = cap.read()
             brain.car.frame = frame
             if not ret:
@@ -112,11 +113,9 @@ if __name__ == '__main__':
         brain.run()
             
         ## DEBUG INFO
-        print(car)
         if SHOW_IMGS:
             cv.imshow('Top view', brain.car.top_frame)
             cv.waitKey(1)
-
         print(f'Lane detection time = {dd.avg_lane_detection_time:.1f} [ms]')
         # print(f'Sign detection time = {dd.avg_sign_detection_time:.1f} [ms]')
         print(f'FPS = {1/loop_time:.1f}, capped at {TARGET_FPS}')

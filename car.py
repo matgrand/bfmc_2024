@@ -203,33 +203,19 @@ class Car():
         return np.clip(val, -MAX_STEER, MAX_STEER)
     
     def __str__(self):
-        description = '''
-{:#^65s} 
-(x,y):\t\t\t\t({:.2f},{:.2f})\t\t[m]
-{:#^65s} 
-(x_est,y_est,yaw_est):\t\t({:.2f},{:.2f},{:.2f})\t[m,m,deg]
-{:#^65s} 
-(x_loc,y_loc,yaw_loc):\t\t({:.2f},{:.2f},{:.2f})\t[m,m,deg]
-dist_loc:\t\t\t{:.2f}\t\t\t[m]
-{:#^65s} 
-roll, pitch, yaw:\t\t{:.2f}, {:.2f}, {:.2f}\t[deg]
-ax, ay, az:\t\t\t{:.2f}, {:.2f}, {:.2f}\t[m/s^2]
-wx, wy, wz:\t\t\t{:.2f}, {:.2f}, {:.2f}\t[rad/s]
-{:#^65s}
-encoder_distance:\t\t{:.3f}\t\t\t[m]
-encoder_velocity (filtered):\t{:.2f} ({:.2f})\t\t[m/s]
-{:#^65s}
-sonar_distance (filtered):\t{:.3f} ({:.3f})\t\t[m]
-'''
-        return description.format(' POSITION ', self.x_true, self.y_true,\
-                                    ' ESTIMATION ', self.x_est, self.y_est, np.rad2deg(self.yaw_est),\
-                                    ' LOCAL POSITION ', self.x_loc, self.y_loc, np.rad2deg(self.yaw_loc), self.dist_loc,\
-                                    ' IMU ', self.roll_deg, self.pitch_deg, self.yaw_deg, self.accel_x, self.accel_y, self.accel_z, self.gyrox, self.gyroy, self.gyroz,\
-                                    ' ENCODER ', self.encoder_distance, self.encoder_velocity, self.filtered_encoder_velocity,
-                                    ' SONAR ', self.sonar_distance, self.filtered_sonar_distance)
-                                    
+        lines = [
+            f'============= CAR INFO ===================================================',
+            f'(x,y,yaw):                    ({self.x_true:.2f},{self.y_true:.2f},{np.rad2deg(self.yaw):.2f})  \t[m,m,deg]',
+            f'(x_est,y_est,yaw_est):        ({self.x_est:.2f},{self.y_est:.2f},{np.rad2deg(self.yaw_est):.2f})\t\t[m,m,deg]',
+            f'(x_loc,y_loc,yaw_loc):        ({self.x_loc:.2f},{self.y_loc:.2f},{np.rad2deg(self.yaw_loc):.2f})  \t[m,m,deg]',
+            f'dist_loc:                     {self.dist_loc:.2f}\t\t\t[m]',
 
-
+            f'encoder_distance:             {self.encoder_distance:.2f}\t\t\t[m]',
+            f'encoder_velocity (filtered):  {self.encoder_velocity:.2f} ({self.filtered_encoder_velocity:.2f})\t\t[m/s]',
+            f'sonar_distance (filtered):    {self.sonar_distance:.2f} ({self.filtered_sonar_distance:.2f})\t\t[m]',
+            f'==========================================================================',
+        ]
+        return '\n'.join(lines)
 
     
 
