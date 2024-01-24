@@ -1,5 +1,5 @@
-import rospy
 #!/usr/bin/python3
+from stuff import ros
 from geometry_msgs.msg import TransformStamped
 from vicon_bridge.msg import Markers
 from tf.transformations import euler_from_quaternion
@@ -27,11 +27,11 @@ class Vicon():
         self.yaw        = 0
         self.x0, self.y0, self.yaw0 = X0, Y0, YAW_OFFSET
         # create publishers and subscribers to control the car
-        self.sub_vicon_car = rospy.Subscriber(VICON_CAR_TOPIC, TransformStamped, self.vicon_car_callback)
-        self.sub_vicon_markers = rospy.Subscriber(VICON_MARKERS_TOPIC, Markers, self.vicon_markers_callback)
-        self.pub_speed = rospy.Publisher('/automobile/command/speed', Float32, queue_size=1)
-        self.pub_steer = rospy.Publisher('/automobile/command/steer', Float32, queue_size=1)
-        self.pub_stop = rospy.Publisher('/automobile/command/stop', Float32, queue_size=1)
+        self.sub_vicon_car = ros.Subscriber(VICON_CAR_TOPIC, TransformStamped, self.vicon_car_callback)
+        self.sub_vicon_markers = ros.Subscriber(VICON_MARKERS_TOPIC, Markers, self.vicon_markers_callback)
+        self.pub_speed = ros.Publisher('/automobile/command/speed', Float32, queue_size=1)
+        self.pub_steer = ros.Publisher('/automobile/command/steer', Float32, queue_size=1)
+        self.pub_stop = ros.Publisher('/automobile/command/stop', Float32, queue_size=1)
         sleep(0.3) # wait for publishers to initialize
         self.prev_speed = 0.0
         self.last_callback_time = time()
@@ -116,10 +116,10 @@ class Vicon():
 if __name__ == '__main__':
     try:
         vicon = Vicon()
-        rospy.init_node('vicon_debug_node', anonymous=False)
-        while not rospy.is_shutdown():
+        ros.init_node('vicon_debug_node', anonymous=False)
+        while not ros.is_shutdown():
             # print(f'\nx_rear: {vicon.x:.3f}\ny_rear: {vicon.y:.3f}\nyaw: {np.rad2deg(vicon.yaw):.1f}\n')
             sleep(0.1)
-    except rospy.ROSInterruptException:
+    except ros.ROSInterruptException:
         print('inside interrupt exeption')
         pass

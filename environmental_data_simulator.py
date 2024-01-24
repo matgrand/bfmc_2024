@@ -1,12 +1,9 @@
 #!/usr/bin/python3
-
+from stuff import *
 from brain import SIMULATOR_FLAG
+import numpy as np, json
 
 # Functional libraries
-import rospy
-import numpy as np
-import json
-from stuff import *
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """
     def default(self, obj):
@@ -78,25 +75,25 @@ class EnvironmentalData():
         # ==================== SUBSCRIBERS AND PUBLISHERS ====================
         # VEHICLE-TO-VEHICLE (V2V)
         if trig_v2v:
-            self.sub_v2v = rospy.Subscriber('/automobile/vehicles', vehicles, self.v2v_callback)
+            self.sub_v2v = ros.Subscriber('/automobile/vehicles', vehicles, self.v2v_callback)
         # VEHICLE-TO-EVERYTHING (V2X)
         if trig_v2x:
-            self.pub_v2x = rospy.Publisher('/automobile/environment', environmental, queue_size=1)
+            self.pub_v2x = ros.Publisher('/automobile/environment', environmental, queue_size=1)
         # SEMAPHORE
         if trig_semaphore:
             if SIMULATOR_FLAG:
-                self.sub_semaphoremaster= rospy.Subscriber("/automobile/trafficlight/master", Byte, self.semaphore_master_callback)
-                self.sub_semaphoreslave = rospy.Subscriber("/automobile/trafficlight/slave", Byte, self.semaphore_slave_callback)
-                self.sub_semaphoreantimaster = rospy.Subscriber("/automobile/trafficlight/antimaster", Byte, self.semaphore_antimaster_callback)
-                self.sub_semaphorestart = rospy.Subscriber("/automobile/trafficlight/start", Byte, self.semaphore_start_callback)
+                self.sub_semaphoremaster= ros.Subscriber("/automobile/trafficlight/master", Byte, self.semaphore_master_callback)
+                self.sub_semaphoreslave = ros.Subscriber("/automobile/trafficlight/slave", Byte, self.semaphore_slave_callback)
+                self.sub_semaphoreantimaster = ros.Subscriber("/automobile/trafficlight/antimaster", Byte, self.semaphore_antimaster_callback)
+                self.sub_semaphorestart = ros.Subscriber("/automobile/trafficlight/start", Byte, self.semaphore_start_callback)
             else:
-                self.sub_semaphoremaster= rospy.Subscriber("/automobile/semaphore/master", Byte, self.semaphore_master_callback)
-                self.sub_semaphoreslave = rospy.Subscriber("/automobile/semaphore/slave", Byte, self.semaphore_slave_callback)
-                self.sub_semaphoreantimaster = rospy.Subscriber("/automobile/semaphore/antimaster", Byte, self.semaphore_antimaster_callback)
-                self.sub_semaphorestart = rospy.Subscriber("/automobile/semaphore/start", Byte, self.semaphore_start_callback)
+                self.sub_semaphoremaster= ros.Subscriber("/automobile/semaphore/master", Byte, self.semaphore_master_callback)
+                self.sub_semaphoreslave = ros.Subscriber("/automobile/semaphore/slave", Byte, self.semaphore_slave_callback)
+                self.sub_semaphoreantimaster = ros.Subscriber("/automobile/semaphore/antimaster", Byte, self.semaphore_antimaster_callback)
+                self.sub_semaphorestart = ros.Subscriber("/automobile/semaphore/start", Byte, self.semaphore_start_callback)
 
         # I/O interface
-        # rospy.init_node('environmental_data', anonymous=False)
+        # ros.init_node('environmental_data', anonymous=False)
 
     # V2V CALLBACKS AND FUNCTIONS
     def v2v_callback(self, data) -> None:
@@ -121,7 +118,7 @@ class EnvironmentalData():
             return ID, pos
         else:
             # dictionary is empty
-            rospy.loginfo("No moving vehicles detected")
+            ros.loginfo("No moving vehicles detected")
             return -1, np.array([car_x, car_y])
     
     def is_other_vehicle_close(self, car_x, car_y):

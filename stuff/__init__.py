@@ -1,8 +1,9 @@
 # this is utils
-#!/usr/bin/python3
-
-import cv2 as cv, numpy as np, networkx
+#!/usr/bin/
 from stuff.names_and_constants import *
+import cv2 as cv, numpy as np, networkx, subprocess as sp
+from os.path import join, exists, dirname
+from time import sleep, time
 
 # HELPER FUNCTIONS
 
@@ -242,6 +243,57 @@ def get_yaw_closest_axis(α):
     if int_angle == -2: int_angle = 2
     return int_angle*np.pi/2
 
+def ros_check_run(launch='car_with_map.launch', map='2024'): 
+    ''' Checks if the ros launch file is running, if not, it starts it 
+    launch: name of the launch file (e.g. 'car_with_map.launch', see folder:
+    Simulator/src/sim_pkg/launch/)
+    map: map choice: options: '2024', 'test'
+    '''
+    assert map in ['2024', 'test'], f'invalid map: {map}'
+    assert exists(join(dirname(dirname(__file__)), 'Simulator/src/sim_pkg/launch', launch)), f'launch file not found: {launch}'
+    # source the setup.bash file
+    setup_bash_path = join(dirname(dirname(__file__)), "Simulator", "devel", "setup.bash")
+    assert exists(setup_bash_path), f'setup.bash not found: {setup_bash_path}, did forget to cmpile: do:\n bash Simulator/recompile.sh'
+    sp.run(f'. {setup_bash_path}', shell=True)
+    #check if the ros master is running
+    if 'ERROR' in sp.run('rostopic list', shell=True, capture_output=True).stderr.decode('utf-8'):
+        print(f'Ros master not running, starting it...')
+        #set the map and run ros master with the launch file
+        cmd =f'bash {join(dirname(dirname(__file__)), "Simulator", f"set_{map}_map.sh")} && roslaunch sim_pkg {launch}'
+        sp.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
+        while True: #wait for the ros master to start
+            print('waiting for ros master to start...', end='\r')
+            if '/automobile/command' in sp.run('rostopic list', shell=True, capture_output=True).stdout.decode('utf-8'): 
+                print('ros master started!                     ')
+                break
+            sleep(0.3)
+
+# semi random generator 
+class MyRandomGenerator:
+    def __init__(self, value_mean, value_std, frame_change_mean, frame_change_std, rand_func=np.random.normal) -> None:
+        """
+        Note: if using np.ranodm.normal, the mean and std are the mean and std of the distribution
+        if using np.random.uniform, the mean and std are the lower and upper bound of the uniform distribution
+        """
+        self.cnt = 0
+        self.noise_value = 0.0
+        self.next_reset = 0
+        self.random_func = rand_func
+
+        self.value_mean = value_mean
+        self.value_std = value_std
+        self.frame_change_mean = frame_change_mean
+        self.frame_change_std = frame_change_std
+    
+    def get_noise(self):
+        if self.cnt == self.next_reset:
+            self.cnt = 0
+            self.noise_value = self.random_func(self.value_mean, self.value_std)
+            self.next_reset = np.random.randint(self.frame_change_mean - self.frame_change_std, self.frame_change_mean + self.frame_change_std)
+        self.cnt += 1
+        return self.noise_value
+            
+    
 
 
 

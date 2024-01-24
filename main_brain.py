@@ -1,14 +1,9 @@
 #!/usr/bin/python3
 from brain import SIMULATOR_FLAG, SHOW_IMGS
-import os, signal
-import cv2 as cv
-import rospy
-import numpy as np
+import numpy as np, cv2 as cv, signal, subprocess as sp
 from time import sleep, time
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
 
-os.system('clear')
+sp.run('clear')
 print('Main brain starting...')
 # from automobile_data import Automobile_Data
 if SIMULATOR_FLAG:
@@ -52,9 +47,11 @@ cap.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
 cap.set(cv.CAP_PROP_FPS, 30)
 
 if __name__ == '__main__':
+    ros_check_run(launch='car_with_map.launch', map='2024')
+
     # init the car data
-    os.system('rosservice call gazebo/pause_physics') if SIMULATOR_FLAG else None
-    os.system('rosservice call /gazebo/reset_simulation') if SIMULATOR_FLAG else None
+    sp.run('rosservice call gazebo/pause_physics', shell=True) if SIMULATOR_FLAG else None
+    sp.run('rosservice call /gazebo/reset_simulation', shell=True) if SIMULATOR_FLAG else None
     # sleep(1.5)
     if SIMULATOR_FLAG: car = CarSim()
     else: 
@@ -63,7 +60,7 @@ if __name__ == '__main__':
     sleep(1.5)
     car.encoder_distance = 0.0
 
-    # os.system('rosrun example visualizer.py &') #run visualization node
+    # sp.run('rosrun example visualizer.py &', shell=True) #run visualization node
 
     if SHOW_IMGS:
         cv.namedWindow('Path', cv.WINDOW_NORMAL)
@@ -75,7 +72,7 @@ if __name__ == '__main__':
     def handler(signum, frame):
         print("Exiting...")
         car.stop()
-        os.system('rosservice call gazebo/pause_physics') if SIMULATOR_FLAG else None 
+        sp.run('rosservice call gazebo/pause_physics', shell=True) if SIMULATOR_FLAG else None 
         cv.destroyAllWindows()
         sleep(.9)
         exit()
@@ -97,10 +94,10 @@ if __name__ == '__main__':
     #initiliaze the brain
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, path_planner=pp, desired_speed=DESIRED_SPEED)
 
-    os.system('rosservice call gazebo/unpause_physics') if SIMULATOR_FLAG else None
+    sp.run('rosservice call gazebo/unpause_physics', shell=True) if SIMULATOR_FLAG else None
     car.stop()
     loop_time = 1.0 / TARGET_FPS
-    while not rospy.is_shutdown():
+    while not ros.is_shutdown():
         loop_start_time = time()
 
         if not SIMULATOR_FLAG:

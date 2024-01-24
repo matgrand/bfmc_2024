@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import rospy
+from stuff import ros
 import numpy as np
 import cv2 as cv
 from time import sleep, time
@@ -19,7 +19,7 @@ locs = []
 if __name__ == '__main__':
 
     #initialize ros node
-    rospy.init_node('pi_logger', anonymous=False) #initialize ros node
+    ros.init_node('pi_logger', anonymous=False) #initialize ros node
     VI = Vicon() #intialize vicon class, with publishers and subscribers
 
     #camera
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     while not cap.read()[0]:
         pass
 
-    while not rospy.is_shutdown():
+    while not ros.is_shutdown():
         loop_start_time = time()
 
         if lap >=1:

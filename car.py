@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # Functional libraries
-import rospy, numpy as np
+from stuff import *
+import numpy as np
 from time import time
 from collections import deque
-from stuff import *
 
 class Car():
     def __init__(self) -> None:
@@ -65,7 +65,7 @@ class Car():
         self.yaws_between_updates = deque(maxlen=int(round(ENCODER_POS_FREQ/GPS_FREQ)))
 
         # I/O interface
-        rospy.init_node('car', anonymous=False)
+        ros.init_node('car', anonymous=False)
         print('Car node started')
 
         # SUBSCRIBERS AND PUBLISHERS

@@ -1,5 +1,5 @@
 
-import os, signal, rospy
+import os, signal
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,7 +48,7 @@ from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
-rospy.wait_for_service('/gazebo/set_model_state')
+ros.wait_for_service('/gazebo/set_model_state')
 state_msg = ModelState()
 state_msg.model_name = 'automobile'
 state_msg.pose.position.x = 0
@@ -63,7 +63,7 @@ def place_car(x,y,yaw):
     state_msg.pose.position.y = y
     state_msg.pose.orientation.z = np.sin(yaw/2)
     state_msg.pose.orientation.w = np.cos(yaw/2)
-    set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+    set_state = ros.ServiceProxy('/gazebo/set_model_state', SetModelState)
     _ = set_state(state_msg)
     sleep(0.02)
 
@@ -77,7 +77,7 @@ def save_data(imgs,locs, name):
 frame = None
 bridge = CvBridge()
 
-rospy.init_node('gazebo_move')
+ros.init_node('gazebo_move')
 def camera_callback(data) -> None:
     """Receive and store camera frame
     :acts on: self.frame
@@ -85,7 +85,7 @@ def camera_callback(data) -> None:
     global frame, bridge
     frame = bridge.imgmsg_to_cv2(data, "bgr8")
 
-camera_sub = rospy.Subscriber('/automobile/image_raw', Image, camera_callback)
+camera_sub = ros.Subscriber('/automobile/image_raw', Image, camera_callback)
 
 for sn_std, pos_std in zip(STEER_NOSIE_STDS_DEG, POSITION_NOISE_STD):
     print(f'noise std: {sn_std}, pos std: {pos_std}')

@@ -1,13 +1,14 @@
 #!/usr/bin/python3
+from stuff import MyRandomGenerator, diff_angle, ros
 from geometry_msgs.msg import TransformStamped
 from tf.transformations import euler_from_quaternion
-import rospy, collections, os, signal
+import collections, os, signal
 from std_msgs.msg import Float32, Bool
 import numpy as np
 import matplotlib.pyplot as plt
 from time import time, sleep
 
-from helper_functions import *
+# from helper_functions import *
 from vicon import Vicon
 
 # VICON settings
@@ -62,7 +63,7 @@ if __name__ == '__main__':
         path = np.flip(path, axis = 0)
     print(f'path: {path.shape}')
 
-    rospy.init_node('pc_controller', anonymous=False) #initialize ros node
+    ros.init_node('pc_controller', anonymous=False) #initialize ros node
 
     def handler(signum, frame):
         print("Exiting ...")
@@ -76,7 +77,7 @@ if __name__ == '__main__':
 
     pc_locs = []
 
-    while not rospy.is_shutdown():
+    while not ros.is_shutdown():
         loop_start_time = time()
 
         #get heading error

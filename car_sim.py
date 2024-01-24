@@ -1,13 +1,12 @@
 # implement here the Car simulator class
+from stuff import *
 from car import Car # Car interface
 from std_msgs.msg import String # standard ROS messages
 from utils.msg import pose # custom messages from the ROS simulator
 from sensor_msgs.msg import Image, Range # standard ROS messages
-import rospy, json, collections
 from cv_bridge import CvBridge
-import numpy as np
+import numpy as np, json, collections
 from time import time, sleep
-from stuff import *
 
 class CarSim(Car):
     def __init__(self) -> None:
@@ -34,17 +33,17 @@ class CarSim(Car):
 
         # PUBLISHERS AND SUBSCRIBERS
         # sub for commands to the simulated vehicle
-        self.pub = rospy.Publisher('/automobile/command', String, queue_size=1)
-        self.steer_updater = rospy.Timer(rospy.Duration(1/STEER_UPDATE_FREQ), self.steer_update_callback)
-        self.drive_dist_updater = rospy.Timer(rospy.Duration(ENCODER_TIMER), self.drive_distance_callback)
-        self.sub_imu = rospy.Subscriber('/automobile/pose', pose, self.imu_callback)
+        self.pub = ros.Publisher('/automobile/command', String, queue_size=1)
+        self.steer_updater = ros.Timer(ros.Duration(1/STEER_UPDATE_FREQ), self.steer_update_callback)
+        self.drive_dist_updater = ros.Timer(ros.Duration(ENCODER_TIMER), self.drive_distance_callback)
+        self.sub_imu = ros.Subscriber('/automobile/pose', pose, self.imu_callback)
         self.reset_rel_pose()
-        rospy.Timer(rospy.Duration(ENCODER_TIMER), self.encoder_distance_callback) #the callback will also do velocity
-        self.sub_son = rospy.Subscriber('/automobile/sonar1', Range, self.sonar_callback)
-        self.sub_lateral_son = rospy.Subscriber('/automobile/sonar2', Range, self.lateral_sonar_callback)
+        ros.Timer(ros.Duration(ENCODER_TIMER), self.encoder_distance_callback) #the callback will also do velocity
+        self.sub_son = ros.Subscriber('/automobile/sonar1', Range, self.sonar_callback)
+        self.sub_lateral_son = ros.Subscriber('/automobile/sonar2', Range, self.lateral_sonar_callback)
         self.bridge = CvBridge()
-        self.sub_cam = rospy.Subscriber("/automobile/image_raw", Image, self.camera_callback)
-        self.sub_top = rospy.Subscriber("/automobile/image_top", Image, self.top_camera_callback)
+        self.sub_cam = ros.Subscriber("/automobile/image_raw", Image, self.camera_callback)
+        self.sub_top = ros.Subscriber("/automobile/image_top", Image, self.top_camera_callback)
 
     def camera_callback(self, data:Image) -> None:
         '''Receive and store camera frame
