@@ -48,6 +48,8 @@ if not SIMULATOR_FLAG:
     cap.set(cv.CAP_PROP_FPS, 30)
 
 if __name__ == '__main__':
+    d = DebugStuff(show_imgs=SHOW_IMGS) #init debug stuff
+
     if SIMULATOR_FLAG: 
         ros_check_run(launch='car_with_map.launch', map='2024')
         sp.run('rosservice call gazebo/pause_physics', shell=True) 
@@ -61,12 +63,6 @@ if __name__ == '__main__':
     car.encoder_distance = 0.0
 
     # sp.run('rosrun example visualizer.py &', shell=True) #run visualization node
-
-    if SHOW_IMGS:
-        cv.namedWindow('Path', cv.WINDOW_NORMAL)
-        cv.resizeWindow('Path', 600, 600)
-        cv.namedWindow('Top view', cv.WINDOW_NORMAL)
-        cv.resizeWindow('Top view', 400, 400)
 
     #stop the car with ctrl+c
     def handler(signum, frame):
@@ -92,7 +88,8 @@ if __name__ == '__main__':
     dd = Detection()
 
     #initiliaze the brain
-    brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, path_planner=pp, desired_speed=DESIRED_SPEED)
+    brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, 
+                  path_planner=pp, desired_speed=DESIRED_SPEED, debug_stuff=d)
 
     if SIMULATOR_FLAG: sp.run('rosservice call gazebo/unpause_physics', shell=True)
     car.stop()
@@ -113,9 +110,7 @@ if __name__ == '__main__':
         brain.run()
             
         ## DEBUG INFO
-        if SHOW_IMGS:
-            cv.imshow('Top view', brain.car.top_frame)
-            cv.waitKey(1)
+        if SHOW_IMGS: d.show() #show all debug images
         print(f'Lane detection time = {dd.avg_lane_detection_time:.1f} [ms]')
         # print(f'Sign detection time = {dd.avg_sign_detection_time:.1f} [ms]')
         print(f'FPS = {1/loop_time:.1f}, capped at {TARGET_FPS}')

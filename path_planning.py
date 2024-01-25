@@ -1,13 +1,8 @@
 #!/usr/bin/python3
-import networkx, numpy as np, cv2 as cv, os
-from time import time, sleep
-from pyclothoids import Clothoid
 from stuff import *
-from stuff.names_and_constants import *
-from os.path import join, exists
+import networkx
+from pyclothoids import Clothoid
 from numpy.linalg import norm
-
-SHOW_IMGS = False
 
 class PathPlanning(): 
     def __init__(self):
@@ -236,9 +231,6 @@ class PathPlanning():
 
         # draw trajectory
         cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=4, lineType=cv.LINE_AA)
-        if SHOW_IMGS:
-            cv.imshow('Path', cv.flip(self.map, 0))
-            cv.waitKey(1)
 
     def get_closest_start_node(self, x, y):
         ''' Returns the closes node to the given x,y coordinates '''
