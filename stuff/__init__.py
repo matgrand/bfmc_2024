@@ -36,7 +36,7 @@ class DebugStuff:
         else: #show only one
             if self.names2imgs[name] is not None:
                 cv.imshow(name, self.names2imgs[name] if name != 'gmap' else cv.flip(self.gmap, 0))
-        cv.waitKey(1)
+        if cv.waitKey(1) == 27: exit(0)
         
 
 def diff_angle(angle1, angle2):
@@ -107,32 +107,30 @@ def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
     if draw_body: cv.polylines(map, [m2pix(corners)], True, color, 3, cv.LINE_AA) #draw car body
     return map
 
-FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.18,'z':CAM_Z, 'w':320, 'h':240}
-TOP_CAM = {'fov':CAM_FOV,'θ':1.04,'x':0.18-1,'z':3.5, 'w':240, 'h':240}
+ZOFF = 0.03
+FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.0,'z':0.2+ZOFF, 'w':320, 'h':240}
+TOP_CAM = {'fov':CAM_FOV,'θ':1.04,'x':-1,'z':3.5+ZOFF, 'w':480, 'h':480}
 
-def project_onto_frame(cp:Pose, points, align_to_car=True, cam=FRONT_CAM):
+def project_onto_frame(points, cp:Pose=None, cam=FRONT_CAM):
     ''' function to project points onto a camera frame, returns the points in pixel coordinates '''
-    assert isinstance(cp, Pose)
+    if cp is not None: assert isinstance(cp, Pose)
     assert isinstance(points, np.ndarray), f'points must be np.ndarray, got {type(points)}'
     assert points.shape[-1] == 2, f'points must be (something,2), got {points.shape}'
     assert points.ndim <= 2, f'points must be (something,2), got {points.shape}'
     θ, xc, zc, w, h = cam['θ'], cam['x'], cam['z'], cam['w'], cam['h']
     pts = points.reshape(-1, 2) #flatten points
     pts = np.concatenate((pts, np.zeros((pts.shape[0],1))), axis=1) # and add z coordinate
-    if align_to_car: pts = to_car_frame(pts, cp, 3) # move and rotate points to the car frame
+    if cp is not None: pts = to_car_frame(pts, cp, 3) # move and rotate points to the car frame
     R, T = np.array([[np.cos(θ), 0, np.sin(θ)], [0, 1, 0], [-np.sin(θ), 0, np.cos(θ)]]), np.array([xc, 0, zc])
     pts = (pts - T) @ R # move and rotate points to the camera frame
-    ppts = -pts[:,1:] / pts[:,0:1] # project points onto the camera plane
-    ppts = h*ppts + np.array([w//2, h//2]) # convert to pixel coordinates
-    ppts = np.round(ppts).astype(np.int32) # convert to integer
-    ppts = ppts[(ppts[:,0] >= 0) & (ppts[:,0] < w) & (ppts[:,1] >= 0) & (ppts[:,1] < h)] # filter out of frame
-    if len(ppts) == 0: return None #no points in front of the car
+    f = 2*np.tan(cam['fov']/2)*h/w# focal length
+    ppts = - pts[:,1:] / pts[:,0:1] / f # project points onto the camera frame
+    ppts = np.round(h*ppts + np.array([w//2, h//2])).astype(np.int32) # convert to pixel coordinates
     if points.ndim == 1: return ppts[0] #return a single point
     return ppts #return multiple points
 
-def draw_points_on_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,255), thickness=2):
-    ppts = project_onto_frame(cp, points, align_to_car) 
-    if ppts is None: return
+def draw_points_on_frame(frame, points, cp:Pose=None, color=(0,255,255), thickness=2, cam=FRONT_CAM):
+    ppts = project_onto_frame(points, cp, cam)
     for p in ppts.reshape(-1,2): cv.circle(frame, p, thickness, color, -1)
 
 def to_car_frame(points, cp:Pose, return_size=3):

@@ -591,7 +591,8 @@ class Brain:
                     if self.detect.est_dist_to_stop_line < STOP_LINE_APPROACH_DISTANCE:
                         d = self.detect.est_dist_to_stop_line
                     else: d = 0.0
-                car_position_slf = -np.array([+d+0.33, +e2])#-np.array([+d+0.38, +e2])#-np.array([+d+0.3+0.15, +e2])#np.array([+d+0.2, -e2])
+                # car_position_slf = -np.array([+d+0.33, +e2])
+                car_position_slf = -np.array([+d+0.375, +e2])
 
             # get orientation of the car in the stop line frame
             yaw_car = self.car.yaw
@@ -610,7 +611,6 @@ class Brain:
                     self.car.yaw += diff
             # assert abs(alpha) < np.pi/6, f'Car orientation wrt stopline is too big, it needs to be better aligned, alpha = {alpha}' #TODO uncomment this line
             R = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]]) #rotation matrix
-            
             # ## get position of the car in the stop line frame
             local_path_cf = local_path_slf_rot 
             local_path_cf = local_path_cf @ R #NOTE: rotation first if we ignore the lateral error and consider only the euclidean distance from the line
@@ -623,8 +623,8 @@ class Brain:
 
             if SHOW_IMGS:
                 #project the whole path (true) and the local path (est) onto the frame
-                draw_points_on_frame(self.d.gframe, self.car.pose(), self.pp.path, color=(0, 100, 0), align_to_car=True)
-                draw_points_on_frame(self.d.gframe, self.car.pose(), local_path_cf, color=(0, 255, 255), align_to_car=False)
+                draw_points_on_frame(self.d.gframe, local_path_cf, color=(0, 255, 255))
+                draw_points_on_frame(self.d.gtopview, local_path_cf, color=(0, 255, 255), cam=TOP_CAM)
                 self.curr_state.var2 = np.array([self.car.x_true, self.car.y_true]) #var2 hold original position
                 true_start_pos_wf = self.curr_state.var2 #true start position in world frame    
                 alpha = alpha + stop_line_yaw #yaw of the car wrt the world frame
@@ -649,7 +649,6 @@ class Brain:
         idx_point_ahead = np.argmin(dist_path) + idx_car_on_path
         # idx_point_ahead = int(100*self.car.dist_loc) # m -> cm -> idx
         print(f'idx_point_ahead: {idx_point_ahead} / {len(local_path_cf)}')
-
         R = np.array([[np.cos(self.car.yaw_loc), -np.sin(self.car.yaw_loc)], [np.sin(self.car.yaw_loc), np.cos(self.car.yaw_loc)]])
         local_path_cf = local_path_cf @ R
 
@@ -668,9 +667,9 @@ class Brain:
             # show the true position to check if they match
             true_pos_wf = np.array([self.car.x_true, self.car.y_true])
             cv.circle(self.d.gmap, m2pix(true_pos_wf), 7, (0, 255, 0), 2)
+
         if np.abs(get_curvature(local_path_cf)) < 0.1: #the local path is straight
             print('straight')
-            # max_idx = len(local_path_cf)-60 #dont follow until the end
             max_idx = 3
         else: #curvy path
             max_idx = len(local_path_cf)-1  #follow until the end
@@ -682,8 +681,10 @@ class Brain:
         else: #we are still on the path
             point_ahead = local_path_cf[idx_point_ahead]
             if SHOW_IMGS:
-                draw_points_on_frame(self.d.gframe, self.car.pose(), local_path_cf, color=(0, 255, 255), align_to_car=False)
-                draw_points_on_frame(self.d.gframe, self.car.pose(), point_ahead, color=(0, 0, 255), align_to_car=False)
+                draw_points_on_frame(self.d.gframe, local_path_cf, color=(0, 255, 255))
+                draw_points_on_frame(self.d.gtopview, local_path_cf, color=(0, 255, 255), cam=TOP_CAM)
+                draw_points_on_frame(self.d.gframe, point_ahead, color=(0, 0, 255))
+                draw_points_on_frame(self.d.gtopview, point_ahead, color=(0, 0, 255), cam=TOP_CAM)
             gains = [0.0, .0, 1.2, 0.0] #k1,k2,k3,k3D
             e2 = local_path_cf[idx_car_on_path][1] 
             yaw_error = np.arctan2(point_ahead[1], point_ahead[0]) 
@@ -1382,10 +1383,11 @@ class Brain:
 
     #=============== ROUTINES ===============#
     def follow_lane(self):
-        e2, e3, point_ahead = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
+        e2, e3, pa = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
         if SHOW_IMGS:
-            proj = project_onto_frame(self.car.pose(), point_ahead, align_to_car=False)
-            if proj is not None: cv.line(self.d.gframe, (int(proj[0]), int(proj[1])), (int(self.d.gframe.shape[1]/2), int(self.d.gframe.shape[0])), (255,0,255), 2)
+            # draw the point ahead
+            draw_points_on_frame(self.d.gframe, np.array([[pa[0],pa[1]],[-0.18,0]]), color=(255,0,255), thickness=3)
+            draw_points_on_frame(self.d.gtopview, np.array([[pa[0],pa[1]],[-0.18,0]]), color=(255,0,255), thickness=3, cam=TOP_CAM)
         _, angle_ref = self.controller.get_control(e2, e3, 0, self.desired_speed)
         angle_ref = np.rad2deg(angle_ref)
         self.car.drive_angle(angle_ref) 
@@ -1394,7 +1396,8 @@ class Brain:
         #update the variable self.detect.est_dist_to_stop_line
         if USE_ADVANCED_NETWORK_FOR_STOPLINES:
             stopline_x, _, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=SHOW_IMGS) 
-            dist = stopline_x + 0.05
+            # dist = stopline_x + 0.05
+            dist = stopline_x - 0.05
         else:
             dist = self.detect.detect_stop_line(self.car.frame, show_ROI=SHOW_IMGS)
         
@@ -1402,7 +1405,7 @@ class Brain:
             #draw an horizontal line at the stop line
             sl_pos = np.array([dist+.3, 0.0]) # stop line position in car frame
             color, th = ((0,0,255), 4) if dist < 0.5 else ((0,0,125), 2)
-            proj = project_onto_frame(self.car.pose(), sl_pos, align_to_car=False)
+            proj = project_onto_frame(sl_pos)
             x1, x2 = int(self.d.gframe.shape[1]/2) - 60, int(self.d.gframe.shape[1]/2) + 60
             if proj is not None: cv.line(self.d.gframe, (x1, int(proj[1])), (x2, int(proj[1])), color, th)
 
@@ -1531,6 +1534,13 @@ class Brain:
         #assign images to debug class
         if SIMULATOR_FLAG: self.d.gtopview = self.car.top_frame.copy()
         self.d.gframe = self.car.frame.copy()
+        if SHOW_IMGS and self.pp.path is not None:
+            #draw entire path on top frame and frame
+            draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose(), color=(0,255,0), thickness=1, cam=TOP_CAM)
+            draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose(), color=(0,255,0), thickness=1, cam=FRONT_CAM)
+            origin = np.array([-0.18,0.0])
+            draw_points_on_frame(self.d.gframe, origin, color=(0,0,255), thickness=3, cam=FRONT_CAM)
+            draw_points_on_frame(self.d.gtopview, origin, color=(0,0,255), thickness=3, cam=TOP_CAM)
         # print and run stuff
         print('\n' * gts().lines, end='')
         print('\033[F' * gts().lines, end='')

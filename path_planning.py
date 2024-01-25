@@ -7,7 +7,7 @@ from numpy.linalg import norm
 class PathPlanning(): 
     def __init__(self):
         self.G = load_graph() # load the map graph
-        self.path = [] # list of points in the path
+        self.path = None # list of points in the path
 
         self.int_mid =  list(np.loadtxt(INT_MID_PATH, dtype=str)) # mid intersection nodes
         self.int_in =   list(np.loadtxt(INT_IN_PATH, dtype=str)) # intersecion entry nodes
