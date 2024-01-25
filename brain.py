@@ -155,7 +155,7 @@ assert not(ALWAYS_TRUST_GPS and ALWAYS_DISTRUST_GPS), 'ALWAYS_TRUST_GPS and ALWA
 GPS_DISTANCE_THRESHOLD_FOR_CONVERGENCE = 0.2 #distance between 2 consecutive measure of the gps for the kalmann filter to be considered converged
 GPS_SAMPLE_TIME = 0.25 #[s] time between 2 consecutive gps measurements
 GPS_CONVERGENCE_PATIANCE = 0 #2 #iterations to consider the gps converged
-GPS_TIMEOUT = 2.0 #[s] time to wait to have gps signal
+GPS_TIMEOUT = 0.1 if SIMULATOR_FLAG else 3.0 #[s] time to wait to have gps signal
 
 #end state
 END_STATE_DISTANCE_THRESHOLD = 0.3 #[m] distance from the end of the path for the car to be considered at the end of the path
@@ -337,7 +337,7 @@ class Brain:
 
         print('Brain initialized')
         print('Waiting for start semaphore...')
-        sleep(3.0)
+        sleep(0.1 if SIMULATOR_FLAG else 3.0)
         while True:
             semaphore_start_state = self.env.get_semaphore_state(START)
             if SEMAPHORE_IS_ALWAYS_GREEN:
@@ -375,7 +375,7 @@ class Brain:
                 print(f'Waiting for gps: {(curr_time-start_time):.1f}/{GPS_TIMEOUT}')
                 if curr_time - start_time > GPS_TIMEOUT:
                     print('WARNING: ROUTE_GENERATION: No gps signal, Starting from the first checkpoint')
-                    sleep(3.0)
+                    sleep(0.1 if SIMULATOR_FLAG else 3.0)
                     can_generate_route = True
         else: can_generate_route = True # we assume to be in the correct node
     
@@ -1444,7 +1444,7 @@ class Brain:
             global debug_frame
             debug_frame = self.car.frame.copy()
             debug_frame, proj = project_onto_frame(debug_frame, self.car.pose(), point_ahead, align_to_car=False, color=(255,0,255), thickness=3)
-            if proj is not None: debug_frame = cv.line(debug_frame, proj, (int(debug_frame.shape[1]/2), int(debug_frame.shape[0])), (255,0,255), 2)
+            if proj is not None: debug_frame = cv.line(debug_frame, (int(proj[0]), int(proj[1])), (int(debug_frame.shape[1]/2), int(debug_frame.shape[0])), (255,0,255), 2)
             cv.imshow('brain_debug', debug_frame)
             cv.waitKey(1)
         speed, angle_ref = self.controller.get_control(e2, e3, 0, self.desired_speed)
@@ -1466,7 +1466,7 @@ class Brain:
             color, th = ((0,0,255), 4) if dist < 0.5 else ((0,0,125), 2)
             _, proj = project_onto_frame(debug_frame, self.car.pose(), sl_pos, align_to_car=False, color=color, thickness=th)
             x1, x2 = int(debug_frame.shape[1]/2) - 60, int(debug_frame.shape[1]/2) + 60
-            debug_frame = cv.line(debug_frame, (x1, int(proj[1])), (x2, int(proj[1])), color, th)
+            if proj is not None: debug_frame = cv.line(debug_frame, (x1, int(proj[1])), (x2, int(proj[1])), color, th)
             cv.imshow('brain_debug', debug_frame)
             cv.waitKey(1)
 

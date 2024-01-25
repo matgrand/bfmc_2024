@@ -83,65 +83,8 @@ def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
     if draw_body: cv.polylines(map, [m2pix(corners)], True, color, 3, cv.LINE_AA) #draw car body
     return map
 
-def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,255), thickness=2):
-    assert isinstance(cp, Pose)
-    #check if its a single point
-    assert points.shape[-1] == 2, f'points must be (2,), got {points.shape}'
-    single_dim = False
-    if points.ndim == 1:
-        points = points[np.newaxis,:]
-        single_dim = True
-    num_points = points.shape[0]
-    if points[0].shape == (2,): #if points are 2d, add z coordinate
-        points = np.concatenate((points, -CAM_Z*np.ones((num_points,1))), axis=1) 
-    
-    #rotate the points around the z axis
-    if align_to_car: points_cf = to_car_frame(points, cp, 3)
-    else: points_cf = points
-
-    #get points in front of the car
-    angles = np.arctan2(points_cf[:,1], points_cf[:,0])
-    diff_angles = diff_angle(angles, 0.0) #car yaw
-    rel_pos_points = []
-    for i, _ in enumerate(points):
-        if np.abs(diff_angles[i]) < CAM_FOV/2:
-            rel_pos_points.append(points_cf[i])
-    rel_pos_points = np.array(rel_pos_points)
-    if len(rel_pos_points) == 0: return frame, None #no points in front of the car
-    #add diffrence com to back wheels
-    rel_pos_points = rel_pos_points - np.array([0.18, 0.0, 0.0])
-    #rotate the points around the relative y axis, pitch
-    beta = -CAM_PITCH
-    rot_matrix = np.array([[np.cos(beta), 0, np.sin(beta)],
-                            [0, 1, 0],
-                            [-np.sin(beta), 0, np.cos(beta)]])
-    rotated_points = rel_pos_points @ rot_matrix.T
-    #project the points onto the camera frame
-    proj_points = np.array([[-p[1]/p[0], -p[2]/p[0]] for p in rotated_points])
-    #convert to pixel coordinates
-    # proj_points = 490*proj_points + np.array([320, 240]) #640x480
-    proj_points = 240*proj_points + np.array([320//2, 240//2]) #320x240
-    # draw the points
-    for i in range(proj_points.shape[0]):
-        p = proj_points[i]
-        assert p.shape == (2,), f"projection point has wrong shape: {p.shape}"
-        # print(f'p = {p}')
-        p1 = (int(round(p[0])), int(round(p[1])))
-        # print(f'p = {p}')
-        #check if the point is in the frame
-        if p1[0] >= 0 and p1[0] < 320 and p1[1] >= 0 and p1[1] < 240:
-            try:
-                cv.circle(frame, p1, thickness, color, -1)
-            except Exception as e:
-                print(f'Error drawing point {p}')
-                print(p1)
-                print(e)
-    if single_dim:
-        return frame, proj_points[0]
-    return frame, proj_points
-
 FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.18,'z':CAM_Z, 'w':320, 'h':240}
-TOP_CAM = {'fov':CAM_FOV,'θ':-0.028,'x':1-0.18,'z':3.5, 'w':240, 'h':240}
+TOP_CAM = {'fov':CAM_FOV,'θ':1.04,'x':1-0.18,'z':3.5, 'w':240, 'h':240}
 
 def project_onto_frame2(cp:Pose, points, align_to_car=True, cam=FRONT_CAM):
     '''function to project points onto the camera frame, returns the points in pixel coordinates'''
@@ -153,16 +96,12 @@ def project_onto_frame2(cp:Pose, points, align_to_car=True, cam=FRONT_CAM):
     fov, θ, xc, zc, w, h = cam['fov'], cam['θ'], cam['x'], cam['z'], cam['w'], cam['h']
     psh, pndim = points.shape, points.ndim #points shape and dimension
     pts = points.reshape(-1,2) #flatten points
-    # convert to 3d points
-    pts = np.concatenate((pts, np.zeros((pts.shape[0],1))), axis=1)
+    pts = np.concatenate((pts, np.zeros((pts.shape[0],1))), axis=1) #add z coordinate
     if align_to_car: pts = to_car_frame(pts, cp, 3) # move and rotate points to the car frame
-    # rotate the points around the relative y axis, pitch
-    R = np.array([[np.cos(θ), 0, np.sin(θ)], [0, 1, 0], [-np.sin(θ), 0, np.cos(θ)]])
-    pts = pts @ R.T
-    # project the points onto the camera frame
-    ppts = np.array([[-p[1]/p[0], -p[2]/p[0]] for p in pts]) 
-    # convert to pixel coordinates
-    ppts = h*ppts + np.array([w//2, h//2]) 
+    R, T = np.array([[np.cos(θ), 0, np.sin(θ)], [0, 1, 0], [-np.sin(θ), 0, np.cos(θ)]]), np.array([xc, 0, zc])
+    pts = (pts - T) @ R # move and rotate points to the camera frame
+    ppts = np.array([[-p[1]/p[0], -p[2]/p[0]] for p in pts]) # project the points onto the camera fame
+    ppts = h*ppts + np.array([w//2, h//2]) # convert to pixel coordinates
     # convert to integer
     ppts = np.round(ppts).astype(np.int32)
     # check if the points are in the camera frame
@@ -171,26 +110,11 @@ def project_onto_frame2(cp:Pose, points, align_to_car=True, cam=FRONT_CAM):
     if pndim == 1: return ppts[0] #return a single point
     return ppts #return multiple points
 
-
-
 def project_onto_frame(frame, cp:Pose, points, align_to_car=True, color=(0,255,255), thickness=2):
-    proj_points = project_onto_frame2(cp, points, align_to_car)
-    if proj_points is None: return frame, None #no points in front of the car
-    print(f'0 proj_points.shape = {proj_points.shape}\nproj_points = {proj_points}')
-    #reshape the points
-    psh = proj_points.shape
-    ppts = proj_points.reshape(-1,2)
-    # draw the points
-    for p in ppts:
-        assert p.shape == (2,), f"projection point has wrong shape: {p.shape}"
-        # print(f'p = {p}')
-        p1 = (int(round(p[0])), int(round(p[1])))
-        # print(f'p = {p}')
-        #check if the point is in the frame
-        assert p1[0] >= 0 and p1[0] < 320 and p1[1] >= 0 and p1[1] < 240, f'point not in frame: {p1}'
-        cv.circle(frame, p1, thickness, color, -1)
-    print(f'1 proj_points.shape = {psh}\nproj_points = {proj_points}')
-    return frame, proj_points.reshape(psh)
+    ppts = project_onto_frame2(cp, points, align_to_car) #new
+    if ppts is None: return frame, None #no points in front of the car
+    for p in ppts.reshape(-1,2): cv.circle(frame, p, thickness, color, -1)
+    return frame, ppts
 
 def to_car_frame(points, cp:Pose, return_size=3):
     assert isinstance(cp, Pose)
