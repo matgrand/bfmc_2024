@@ -4,6 +4,7 @@ from stuff import *
 import numpy as np
 from time import time
 from collections import deque
+from shutil import get_terminal_size as gts
 
 class Car():
     def __init__(self) -> None:
@@ -190,9 +191,11 @@ class Car():
         self.dist_loc = 0.0
         self.dist_loc_o = self.encoder_distance
 
+    @property
     def est_pose(self):
         return Pose(self.x_est, self.y_est, self.yaw_est)
     
+    @property
     def pose(self):
         return Pose(self.x_true, self.y_true, self.yaw_true)
     
@@ -204,8 +207,9 @@ class Car():
         return np.clip(val, -MAX_STEER, MAX_STEER)
     
     def __str__(self):
+        tsize = gts()[0] #terminal size
         lines = [
-            f'============= CAR INFO ===================================================',
+            f'============= CAR INFO {"="*(tsize-23)}',
             f'(x,y,yaw):                    ({self.x_true:.2f},{self.y_true:.2f},{np.rad2deg(self.yaw):.2f})  \t[m,m,deg]',
             f'(x_est,y_est,yaw_est):        ({self.x_est:.2f},{self.y_est:.2f},{np.rad2deg(self.yaw_est):.2f})\t\t[m,m,deg]',
             f'(x_loc,y_loc,yaw_loc):        ({self.x_loc:.2f},{self.y_loc:.2f},{np.rad2deg(self.yaw_loc):.2f})  \t[m,m,deg]',
@@ -214,7 +218,7 @@ class Car():
             f'encoder_distance:             {self.encoder_distance:.2f}\t\t\t[m]',
             f'encoder_velocity (filtered):  {self.encoder_velocity:.2f} ({self.filtered_encoder_velocity:.2f})\t\t[m/s]',
             f'sonar_distance (filtered):    {self.sonar_distance:.2f} ({self.filtered_sonar_distance:.2f})\t\t[m]',
-            f'==========================================================================',
+            f'{"="*tsize}'
         ]
         return '\n'.join(lines)
 

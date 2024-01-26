@@ -26,7 +26,7 @@ map, _ = load_map()
 # PARAMETERS
 TARGET_FPS = 30.0
 sample_time = 0.01 # [s]
-DESIRED_SPEED = 0.35# [m/s] #.35
+DESIRED_SPEED = 0.4# [m/s] #.35
 SP_SPEED = 0.8 # [m/s]
 CURVE_SPEED = 0.6# [m/s]
 path_step_length = 0.01 # [m]
@@ -110,7 +110,7 @@ if __name__ == '__main__':
         brain.run()
             
         ## DEBUG INFO
-        if SHOW_IMGS: d.show() #show all debug images
+        if SHOW_IMGS: d.show(brain.car.pose) #show all debug images
         print(f'Lane detection time = {dd.avg_lane_detection_time:.1f} [ms]')
         # print(f'Sign detection time = {dd.avg_sign_detection_time:.1f} [ms]')
         print(f'FPS = {1/loop_time:.1f}, capped at {TARGET_FPS}')

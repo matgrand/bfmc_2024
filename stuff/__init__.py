@@ -12,6 +12,12 @@ class Pose:
         self.x, self.y, self.ψ = x, y, ψ
     def update(self, x, y, ψ):
         self.x, self.y, self.ψ = x, y, ψ
+    @property
+    def xy(self):
+        return np.array([self.x, self.y])
+    @property
+    def xyp(self):
+        return np.array([self.x, self.y, self.ψ])
     def __str__(self):
         return f'x: {self.x}, y: {self.y}, ψ: {self.ψ}'
 
@@ -28,14 +34,24 @@ class DebugStuff:
             cv.namedWindow('gframe', cv.WINDOW_NORMAL)
             cv.resizeWindow('gframe', 400, 400)
 
-    def show(self, name=None):
-        if name is None: #show all
-            if self.gmap is not None: cv.imshow('gmap', cv.flip(self.gmap, 0))
-            if self.gtopview is not None: cv.imshow('gtopview', self.gtopview)
-            if self.gframe is not None: cv.imshow('gframe', self.gframe)
-        else: #show only one
-            if self.names2imgs[name] is not None:
-                cv.imshow(name, self.names2imgs[name] if name != 'gmap' else cv.flip(self.gmap, 0))
+    def show(self, cp:Pose=None):
+        if self.gmap is not None: 
+            if cp is not None:
+                x,y = m2pix(cp.x), m2pix(cp.y)
+                B = 800
+                tmap = np.zeros((2*B,2*B,3), np.uint8)
+                xmin, xmax = max(0, x-B), min(self.gmap.shape[1], x+B)
+                ymin, ymax = max(0, y-B), min(self.gmap.shape[0], y+B)
+                tmap = self.gmap[ymin:ymax, xmin:xmax]
+                #add black borders to make it a square back
+                if xmin == 0: tmap = np.concatenate((np.zeros((tmap.shape[0], B, 3), np.uint8), tmap), axis=1)
+                if xmax == self.gmap.shape[1]: tmap = np.concatenate((tmap, np.zeros((tmap.shape[0], B, 3), np.uint8)), axis=1)
+                if ymin == 0: tmap = np.concatenate((np.zeros((B, tmap.shape[1], 3), np.uint8), tmap), axis=0)
+                if ymax == self.gmap.shape[0]: tmap = np.concatenate((tmap, np.zeros((B, tmap.shape[1], 3), np.uint8)), axis=0)
+            else: tmap = self.gmap
+            cv.imshow('gmap', cv.flip(tmap, 0))
+        if self.gtopview is not None: cv.imshow('gtopview', self.gtopview)
+        if self.gframe is not None: cv.imshow('gframe', self.gframe)
         if cv.waitKey(1) == 27: exit(0)
         
 

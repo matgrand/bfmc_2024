@@ -19,7 +19,7 @@ from stuff import *
 from path_planning import PathPlanning
 from controller import Controller
 from controllerSP import ControllerSpeed
-from detection import Detection
+from detection import Detection, DISTANCE_POINT_AHEAD, DISTANCE_POINT_AHEAD_AHEAD
 from environmental_data_simulator import EnvironmentalData
 
 END_NODE_SPEED_CHALLENGE = 458
@@ -108,7 +108,7 @@ DEQUE_OF_PAST_FRAMES_LENGTH = 50
 DISTANCES_BETWEEN_FRAMES = 0.03
 
 #Yaw
-APPLY_YAW_CORRECTION = True
+APPLY_YAW_CORRECTION = False # True
 GPS_DELAY = 0.45 # [s] delay for gps message to arrive
 ENCODER_POS_FREQ = 100.0 # [Hz] frequency of encoder position messages
 GPS_FREQ = 10.0 # [Hz] frequency of gps messages
@@ -562,6 +562,7 @@ class Brain:
             local_path_slf_rot = self.next_event.path_ahead #local path in the stop line frame
     
             if self.conditions[TRUST_GPS] and not ALWAYS_USE_VISION_FOR_STOPLINES:
+                assert False # TODO: remove this line
                 USE_PRECISE_LOCATION_AND_YAW = False
                 point_car_est = np.array([self.car.x_est, self.car.y_est])
                 if USE_PRECISE_LOCATION_AND_YAW:
@@ -592,16 +593,21 @@ class Brain:
                         d = self.detect.est_dist_to_stop_line
                     else: d = 0.0
                 # car_position_slf = -np.array([+d+0.33, +e2])
-                car_position_slf = -np.array([+d+0.375, +e2])
+                car_position_slf = -np.array([+d+0.33, +e2])
 
             # get orientation of the car in the stop line frame
-            yaw_car = self.car.yaw
-            yaw_mult_90 = get_yaw_closest_axis(yaw_car)
-            alpha = diff_angle(yaw_car, yaw_mult_90) #get the difference from the closest multiple of 90deg
-            print(f'alpha true: {np.rad2deg(alpha):.1f}')
+            # yaw_car = self.car.yaw
+            # yaw_mult_90 = get_yaw_closest_axis(yaw_car)
+            # alpha = diff_angle(yaw_car, yaw_mult_90) #get the difference from the closest multiple of 90deg
             alpha = self.detect.detect_yaw_stopline(self.car.frame, SHOW_IMGS and False) * 0.8
-            print(f'alpha est: {np.rad2deg(alpha):.1f}')
+            if SIMULATOR_FLAG: 
+                print(f'alpha est: {np.rad2deg(alpha):.1f}')
+                true_alpha = diff_angle(self.car.yaw_true, self.next_event.yaw_stopline)
+                print(f'alpha true: {np.rad2deg(true_alpha):.1f}')
+                alpha = true_alpha #TODO: remove this line
+            
             if APPLY_YAW_CORRECTION:
+                assert False # TODO: remove this line
                 closest_node, _ = self.pp.get_closest_start_node(self.car.x_est, self.car.y_est)
                 if closest_node not in self.pp.no_yaw_calibration_nodes:
                     print(f'yaw = {np.rad2deg(self.car.yaw):.2f}')
@@ -647,7 +653,6 @@ class Brain:
         dist_path = np.abs(dist_path - D)
         #get idx of point ahead
         idx_point_ahead = np.argmin(dist_path) + idx_car_on_path
-        # idx_point_ahead = int(100*self.car.dist_loc) # m -> cm -> idx
         print(f'idx_point_ahead: {idx_point_ahead} / {len(local_path_cf)}')
         R = np.array([[np.cos(self.car.yaw_loc), -np.sin(self.car.yaw_loc)], [np.sin(self.car.yaw_loc), np.cos(self.car.yaw_loc)]])
         local_path_cf = local_path_cf @ R
@@ -662,10 +667,8 @@ class Brain:
             true_start_pos_wf = self.curr_state.var2
             car_pos_loc_rot_wf = car_pos_loc @ rot_matrix_w.T
             car_pos_wf = true_start_pos_wf + car_pos_loc_rot_wf
-            # show car position in wf (encoder)
-            cv.circle(self.d.gmap, m2pix(car_pos_wf), 5, (255, 0, 255), 2)
-            # show the true position to check if they match
-            true_pos_wf = np.array([self.car.x_true, self.car.y_true])
+            cv.circle(self.d.gmap, m2pix(car_pos_wf), 5, (255, 0, 255), 2) # show car position in wf (encoder)
+            true_pos_wf = np.array([self.car.x_true, self.car.y_true]) # show the true position to check if they match
             cv.circle(self.d.gmap, m2pix(true_pos_wf), 7, (0, 255, 0), 2)
 
         if np.abs(get_curvature(local_path_cf)) < 0.1: #the local path is straight
@@ -678,7 +681,7 @@ class Brain:
         if idx_point_ahead >= max_idx: #we reached the end of the path
             self.switch_to_state(LANE_FOLLOWING)
             self.go_to_next_event()
-        else: #we are still on the path
+        else: #we are still on the path -> control the car to follow the path
             point_ahead = local_path_cf[idx_point_ahead]
             if SHOW_IMGS:
                 draw_points_on_frame(self.d.gframe, local_path_cf, color=(0, 255, 255))
@@ -1385,9 +1388,9 @@ class Brain:
     def follow_lane(self):
         e2, e3, pa = self.detect.detect_lane(self.car.frame, SHOW_IMGS)
         if SHOW_IMGS:
-            # draw the point ahead
-            draw_points_on_frame(self.d.gframe, np.array([[pa[0],pa[1]],[-0.18,0]]), color=(255,0,255), thickness=3)
-            draw_points_on_frame(self.d.gtopview, np.array([[pa[0],pa[1]],[-0.18,0]]), color=(255,0,255), thickness=3, cam=TOP_CAM)
+            pts = np.array([np.array([DISTANCE_POINT_AHEAD,0.0]),pa])
+            cv.polylines(self.d.gframe, [project_onto_frame(pts, cam=FRONT_CAM)], False, (255,0,255), 3)
+            cv.polylines(self.d.gtopview, [project_onto_frame(pts, cam=TOP_CAM)], False, (255,0,255), 3)
         _, angle_ref = self.controller.get_control(e2, e3, 0, self.desired_speed)
         angle_ref = np.rad2deg(angle_ref)
         self.car.drive_angle(angle_ref) 
@@ -1402,6 +1405,10 @@ class Brain:
             dist = self.detect.detect_stop_line(self.car.frame, show_ROI=SHOW_IMGS)
         
         if SHOW_IMGS and self.d.gframe is not None and dist is not None:
+            #get stopline extreme points in global frame
+            sl_pos = self.car.pose.xy + np.array([dist*np.cos(self.car.yaw_true), dist*np.sin(self.car.yaw_true)])
+            #draw on gmap
+            if dist < 0.5: cv.circle(self.d.gmap, m2pix(sl_pos), 8, (0,150,30), 2)
             #draw an horizontal line at the stop line
             sl_pos = np.array([dist+.3, 0.0]) # stop line position in car frame
             color, th = ((0,0,255), 4) if dist < 0.5 else ((0,0,125), 2)
@@ -1536,26 +1543,31 @@ class Brain:
         self.d.gframe = self.car.frame.copy()
         if SHOW_IMGS and self.pp.path is not None:
             #draw entire path on top frame and frame
-            draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose(), color=(0,255,0), thickness=1, cam=TOP_CAM)
-            draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose(), color=(0,255,0), thickness=1, cam=FRONT_CAM)
+            draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose, color=(0,255,0), thickness=1, cam=TOP_CAM)
+            draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose, color=(0,255,0), thickness=1, cam=FRONT_CAM)
             origin = np.array([-0.18,0.0])
             draw_points_on_frame(self.d.gframe, origin, color=(0,0,255), thickness=3, cam=FRONT_CAM)
             draw_points_on_frame(self.d.gtopview, origin, color=(0,0,255), thickness=3, cam=TOP_CAM)
+            true_origin = np.array([0.0,0.0])
+            draw_points_on_frame(self.d.gframe, true_origin, color=(255,0,0), thickness=3, cam=FRONT_CAM)
+            draw_points_on_frame(self.d.gtopview, true_origin, color=(255,0,0), thickness=3, cam=TOP_CAM)
         # print and run stuff
+        ts = gts()[0]
         print('\n' * gts().lines, end='')
         print('\033[F' * gts().lines, end='')
-        print('============= STATE MACHINE ==============================================')
+        print(f'============= STATE MACHINE {"="*(ts-28)}')
         print(f'STATE:      {self.curr_state}')
-        print(f'NEXT_EVENT: {self.next_event} - PREV: {self.prev_event}')
+        print(f'NEXT_EVENT: {self.next_event}')
+        print(f'PREV_EVENT: {self.prev_event}')
         print(f'ROUTINES:   {self.active_routines_names+ALWAYS_ON_ROUTINES}')
         print(f'CONDITIONS: {self.conditions}')
         print(self.car)
-        print('============= DEBUG INFO =================================================')
+        print(f'============= DEBUG INFO {"="*(ts-25)}')
         self.run_current_state()
         print(f'CURR_SIGN: {self.curr_sign}')
-        print('==========================================================================')
+        print("="*ts)
         self.run_routines()
-        print('==========================================================================')
+        print("="*ts)
 
     def run_current_state(self):
         self.curr_state.run()
