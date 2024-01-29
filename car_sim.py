@@ -93,8 +93,11 @@ class CarSim(Car):
         self.gyroz = float(data.vpsi)
         self.t = float(data.t)
         #true position NOTE: not in real car
-        self.x_true = float(data.x)
-        self.y_true = float(data.y)
+        xcom, ycom = float(data.x), float(data.y) #center of mass
+        # self.x_true = xcom
+        # self.y_true = ycom
+        self.x_true = xcom - np.cos(self.yaw_true)*CM2WB
+        self.y_true = ycom - np.sin(self.yaw_true)*CM2WB
 
     def encoder_distance_callback(self, data) -> None:
         '''Callback when an encoder distance message is received

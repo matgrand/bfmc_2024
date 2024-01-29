@@ -128,8 +128,8 @@ WHEEL_LEN = 0.03
 
 #STOPLINES
 USE_ADVANCED_NETWORK_FOR_STOPLINES = True
-STOP_LINE_APPROACH_DISTANCE = 0.4 if USE_ADVANCED_NETWORK_FOR_STOPLINES else 0.4
-STOP_LINE_STOP_DISTANCE = 0.15 #0.1 #in the true map 
+STOP_LINE_APPROACH_DISTANCE = 0.4+0.4 if USE_ADVANCED_NETWORK_FOR_STOPLINES else 0.4+0.4
+STOP_LINE_STOP_DISTANCE = 0.15+0.4 #0.1 #in the true map 
 GPS_STOPLINE_APPROACH_DISTANCE = 0.8
 GPS_STOPLINE_STOP_DISTANCE = 0.5 
 assert STOP_LINE_STOP_DISTANCE <= STOP_LINE_APPROACH_DISTANCE
@@ -446,6 +446,7 @@ class Brain:
         #we are approaching a stop_line, check only if we are far enough from the previous stop_line
         else:
             if self.conditions[TRUST_GPS]:
+                raise NotImplementedError
                 dist_to_stopline = self.next_event.dist - self.car_dist_on_path
                 if GPS_STOPLINE_APPROACH_DISTANCE <= dist_to_stopline: 
                     print(f'Stopline is far: {dist_to_stopline-GPS_STOPLINE_APPROACH_DISTANCE:.2f} [m]')
@@ -458,6 +459,8 @@ class Brain:
                 dont_detect_stoplines_for = (self.next_event.dist - self.prev_event.dist)*0.6
                 far_enough_from_prev_stop_line = (self.event_idx == 1) or (self.car.dist_loc > dont_detect_stoplines_for)
                 print(f'stop enough: {self.car.dist_loc:.2f}/{dont_detect_stoplines_for:.2f}') if self.prev_event.name is not None else None
+                if far_enough_from_prev_stop_line: self.add_routines([DETECT_STOP_LINE])
+                else: self.remove_routines([DETECT_STOP_LINE])
                 if self.detect.est_dist_to_stop_line < STOP_LINE_APPROACH_DISTANCE and far_enough_from_prev_stop_line and self.routines[DETECT_STOP_LINE].active:
                     self.switch_to_state(APPROACHING_STOP_LINE)
 
@@ -504,7 +507,7 @@ class Brain:
                     print('Stopped at stop line. Using network distance: ', self.detect.est_dist_to_stop_line) 
                     decide_next_state = True
                     dist_from_line = dist if self.stop_line_distance_median is None else self.stop_line_distance_median - self.car.encoder_distance
-                    assert dist_from_line < 0.5, f'dist_from_line is too large, {dist_from_line:.2f}'
+                    assert dist_from_line < 0.8, f'dist_from_line is too large, {dist_from_line:.2f}'
                 else: decide_next_state = False
 
         if decide_next_state:
@@ -562,7 +565,7 @@ class Brain:
             local_path_slf_rot = self.next_event.path_ahead #local path in the stop line frame
     
             if self.conditions[TRUST_GPS] and not ALWAYS_USE_VISION_FOR_STOPLINES:
-                assert False # TODO: remove this line
+                raise NotImplementedError
                 USE_PRECISE_LOCATION_AND_YAW = False
                 point_car_est = np.array([self.car.x_est, self.car.y_est])
                 if USE_PRECISE_LOCATION_AND_YAW:
@@ -584,16 +587,19 @@ class Brain:
                     e2 = 0.0 # NOTE e2 is usually bad
                 if self.stop_line_distance_median is not None:
                     print('We HAVE the median, using median estimation')
-                    print(len(self.routines[DETECT_STOP_LINE].var2))
                     d = self.stop_line_distance_median - self.car.encoder_distance 
                 else: #we do not have an accurate position for the stopline
                     print('We DONT have the median, using simple net estimation')
-                    print(len(self.routines[DETECT_STOP_LINE].var2))
                     if self.detect.est_dist_to_stop_line < STOP_LINE_APPROACH_DISTANCE:
                         d = self.detect.est_dist_to_stop_line
                     else: d = 0.0
+                if SHOW_IMGS: 
+                    slpx = self.car.pose.x + d*np.cos(self.car.yaw_true) + e2*np.sin(self.car.yaw_true)
+                    slpy = self.car.pose.y + d*np.sin(self.car.yaw_true) - e2*np.cos(self.car.yaw_true)
+                    cv.circle(self.d.gmap, m2pix(np.array([slpx,slpy])), 12, (0, 255, 0), 5)
+                
                 # car_position_slf = -np.array([+d+0.33, +e2])
-                car_position_slf = -np.array([+d+0.33, +e2])
+                car_position_slf = -np.array([+d, +e2])
 
             # get orientation of the car in the stop line frame
             # yaw_car = self.car.yaw
@@ -1398,26 +1404,27 @@ class Brain:
     def detect_stop_line(self):
         #update the variable self.detect.est_dist_to_stop_line
         if USE_ADVANCED_NETWORK_FOR_STOPLINES:
-            stopline_x, _, _ = self.detect.detect_stop_line2(self.car.frame, show_ROI=SHOW_IMGS) 
-            # dist = stopline_x + 0.05
-            dist = stopline_x - 0.05
+            stopline_x, _, _ = self.detect.detect_stop_line(self.car.frame, show_ROI=SHOW_IMGS) 
+            # dist = stopline_x - 0.05
+            dist = stopline_x
         else:
+            raise NotImplementedError
             dist = self.detect.detect_stop_line(self.car.frame, show_ROI=SHOW_IMGS)
         
         if SHOW_IMGS and self.d.gframe is not None and dist is not None:
             #get stopline extreme points in global frame
             sl_pos = self.car.pose.xy + np.array([dist*np.cos(self.car.yaw_true), dist*np.sin(self.car.yaw_true)])
             #draw on gmap
-            if dist < 0.5: cv.circle(self.d.gmap, m2pix(sl_pos), 8, (0,150,30), 2)
+            if dist < 0.5+0.4: cv.circle(self.d.gmap, m2pix(sl_pos), 8, (0,180,40), 2)
             #draw an horizontal line at the stop line
-            sl_pos = np.array([dist+.3, 0.0]) # stop line position in car frame
-            color, th = ((0,0,255), 4) if dist < 0.5 else ((0,0,125), 2)
+            sl_pos = np.array([dist, 0.0]) # stop line position in car frame
+            color, th = ((0,0,255), 4) if dist < 0.5+0.4 else ((0,0,125), 2)
             proj = project_onto_frame(sl_pos)
             x1, x2 = int(self.d.gframe.shape[1]/2) - 60, int(self.d.gframe.shape[1]/2) + 60
             if proj is not None: cv.line(self.d.gframe, (x1, int(proj[1])), (x2, int(proj[1])), color, th)
 
         past_detections = self.routines[DETECT_STOP_LINE].var2
-        if dist < STOP_LINE_APPROACH_DISTANCE-0.05: #-0.1 #network is more accurate in this range
+        if dist < STOP_LINE_APPROACH_DISTANCE: #-0.05 #network is more accurate in this range
             DETECTION_DEQUE_LENGTH = 50
             SAMPLE_BEFORE_CONFIDENCE = 20
             # var1 holds last detection time
@@ -1597,6 +1604,15 @@ class Brain:
         assert all([r in self.routines.keys() for r in routines]), 'ERROR: add_routines: routines_to_activate contains invalid routine'
         for k in routines:
             self.routines[k].active = True
+        
+    def remove_routines(self, routines):
+        '''
+        remove routines from the active routines
+        ex: ['follow_lane', 'control_for_signs']
+        '''    
+        assert all([r in self.routines.keys() for r in routines]), 'ERROR: remove_routines: routines_to_activate contains invalid routine'
+        for k in routines:
+            self.routines[k].active = False
 
     def switch_to_state(self, to_state, interrupt=False):
         '''

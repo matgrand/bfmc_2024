@@ -39,10 +39,10 @@ MAX_ACCEL = 5.5                     # [m/ss]    maximum accel
 MAX_STEER = 28.0                    # [deg]     maximum steering angle
 
 # Vehicle parameters
-CM2WB = 0.22                        # [m]       distance from center of mass to wheel base
+CM2WB = 0.16                        # [m]       distance from center of mass to wheel base 0.22
 LENGTH = 0.45  			            # [m]       car body length 
 WIDTH = 0.18   			            # [m]       car body width 0.18, 0.2
-BACKTOWHEEL = 0.10  		        # [m]       distance of the wheel and the car body
+BACKTOWHEEL = 0.08  		        # [m]       distance of the wheel and the car body
 WHEEL_LEN = 0.03  			        # [m]       wheel raduis
 WHEEL_WIDTH = 0.03  		        # [m]       wheel thickness
 WB = 0.26  			                # [m]       wheelbase

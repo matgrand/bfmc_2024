@@ -101,8 +101,8 @@ class Visualizer():
         cv.arrowedLine(tmp_map, self.xy2cv(x,y), self.xy2cv(x2,y2), (0,0,255), 1)
         # draw a rectangle for the car using LENGTH, WIDTH, BACKTOWHEEL
         corners = np.array([[-BACKTOWHEEL, WIDTH/2],[LENGTH-BACKTOWHEEL, WIDTH/2],[LENGTH-BACKTOWHEEL, -WIDTH/2],[-BACKTOWHEEL, -WIDTH/2]])
-        rot_matrix = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]])
-        corners = corners @ rot_matrix.T + np.array([x,y]) # rotate and translate
+        R = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]])
+        corners = corners @ R.T + np.array([x,y]) # rotate and translate
         corners = (corners/self.m2pix).astype(np.int32) # convert to pixels
         cv.polylines(tmp_map, [corners], True, (0,255,0), 1, cv.LINE_AA) # draw car body
         cv.circle(self.map_img, self.xy2cv(x,y), 1, rainbow_c(self.c_idx), -1) # draw car path

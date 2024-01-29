@@ -219,8 +219,8 @@ class PathPlanning():
         for node in self.all_nodes:
             x,y = self.get_xy(node)
             x,y = x, MAP_H_M - y
-            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 255), -1) # circle on node position
-            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) # draw node name
+            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 180), -1) # circle on node position
+            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 180), 2) # draw node name
         self.map = cv.flip(self.map, 0) # flip the map back
 
         # # draw edges

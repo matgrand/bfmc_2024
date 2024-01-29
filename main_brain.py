@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from brain import SIMULATOR_FLAG, SHOW_IMGS
+from brain import SIMULATOR_FLAG, SHOW_IMGS, USE_ADVANCED_NETWORK_FOR_STOPLINES
 import numpy as np, cv2 as cv, signal, subprocess as sp
 from time import sleep, time
 
@@ -85,7 +85,11 @@ if __name__ == '__main__':
     cc_sp = ControllerSpeed(desired_speed=SP_SPEED, curve_speed=CURVE_SPEED)
 
     #initiliaze all the neural networks for detection and lane following
-    dd = Detection()
+    dd = Detection(advanced_sl=USE_ADVANCED_NETWORK_FOR_STOPLINES)
+
+    #place car to node 462
+    x,y = pp.get_xy('462')
+    place_car(x,y,0.0)
 
     #initiliaze the brain
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, 
@@ -93,7 +97,7 @@ if __name__ == '__main__':
 
     car.stop()
     if SIMULATOR_FLAG: sp.run('rosservice call gazebo/unpause_physics', shell=True)
-    
+
     loop_time = 1.0 / TARGET_FPS
     # main loop
     while not ros.is_shutdown():

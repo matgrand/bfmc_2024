@@ -18,6 +18,9 @@ class Pose:
     @property
     def xyp(self):
         return np.array([self.x, self.y, self.ψ])
+    @property
+    def yaw(self):
+        return self.ψ
     def __str__(self):
         return f'x: {self.x}, y: {self.y}, ψ: {self.ψ}'
 
@@ -40,7 +43,7 @@ class DebugStuff:
         if self.gmap is not None: 
             if cp is not None:
                 x,y = m2pix(cp.xy)
-                cv.circle(self.gmap, (x,y), 3, (150, 255, 0), -1)
+                cv.circle(self.gmap, (x,y), 3, (0, 100, 255), -1)
                 cn = m2pix(get_car_corners(cp) - cp.xy) #get car corners in the car frame
                 B = 1200 # distance around the car to show
                 tmap = np.zeros((2*B,2*B,3), np.uint8)
@@ -51,11 +54,10 @@ class DebugStuff:
                 xc, yc = x-xmin, y-ymin #car position in the tmap
                 tmap = self.gmap[ymin:ymax, xmin:xmax].copy() #copy the map to the tmap
                 cn = cn + np.array([xc, yc]) #car corners in the tmap
-                cv.polylines(tmap, [cn], True, (0, 255, 0), 3, cv.LINE_AA)
+                cv.polylines(tmap, [cn], True, (0, 100, 255), 3, cv.LINE_AA)
                 cv.circle(tmap, (xc, yc), 8, (0, 255, 0), -1)
                 tmap = cv.copyMakeBorder(tmap, dt, db, dr, dl, cv.BORDER_CONSTANT, value=(0, 0, 0)) #add borders
 
-                
             else: tmap = self.gmap
             cv.imshow('gmap', cv.flip(tmap, 0))
         if self.gtopview is not None: cv.imshow('gtopview', self.gtopview)
@@ -127,14 +129,15 @@ def draw_car(map, cp:Pose, color=(0, 255, 0)):
 def get_car_corners(cp:Pose):
     assert isinstance(cp, Pose)
     x, y, ψ = cp.xyp
-    cl, cw = LENGTH-CM2WB, WIDTH #car length and width
-    cn = np.array([[-CM2WB,cw/2],[cl,cw/2],[cl,-cw/2],[-CM2WB,-cw/2]]) #find 4 corners not rotated cw
+    cl, cw, bw = LENGTH, WIDTH, BACKTOWHEEL #car length, car width, back to wheel
+    # cn = np.array([[-CM2WB,cw/2],[cl,cw/2],[cl,-cw/2],[-CM2WB,-cw/2]]) #find 4 corners not rotated cw #COM
+    cn = np.array([[-bw,cw/2],[cl-bw,cw/2],[cl-bw,-cw/2],[-bw,-cw/2]]) #find 4 corners not rotated cw # REAR AXIS
     cn = cn @ np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]]).T + np.array([x,y]) #rotate corners and add car position
     return cn
 
 ZOFF = 0.03
-FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.0,'z':0.2+ZOFF, 'w':320, 'h':240}
-TOP_CAM = {'fov':CAM_FOV,'θ':1.04,'x':-1,'z':3.5+ZOFF, 'w':480, 'h':480}
+FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.0+CM2WB,'z':0.2+ZOFF, 'w':320, 'h':240}
+TOP_CAM = {'fov':CAM_FOV,'θ':1.04,'x':-1+CM2WB,'z':3.5+ZOFF, 'w':480, 'h':480}
 
 def project_onto_frame(points, cp:Pose=None, cam=FRONT_CAM):
     ''' function to project points onto a camera frame, returns the points in pixel coordinates '''
@@ -171,8 +174,8 @@ def to_car_frame(points, cp:Pose, return_size=3):
         points = points[:,:-1]
     else: zs = np.zeros(points.shape[0])
     points_cf = points - np.array([x,y]) #move points to the origin of the car frame
-    rot_matrix = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]]) #rotation matrix
-    out = points_cf @ rot_matrix #rotate points
+    R = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]]) #rotation matrix
+    out = points_cf @ R #rotate points
     if return_size == 3: out = np.concatenate((out, zs[:,np.newaxis]), axis=1) #add z coordinate
     return out.reshape(psh)
 
@@ -225,6 +228,24 @@ def ros_check_run(launch='car_with_map.launch', map='2024'):
                 print('ros master started!                     ')
                 break
             sleep(0.3)
+
+# car placement in simulator
+from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.srv import SetModelState
+def place_car(x,y,yaw):
+    state_msg = ModelState()
+    state_msg.model_name = 'automobile'
+    state_msg.pose.position.z = 0.032939
+    state_msg.pose.orientation.x = 0
+    state_msg.pose.orientation.y = 0
+    state_msg.pose.position.x = x
+    state_msg.pose.position.y = y
+    state_msg.pose.orientation.z = np.sin(yaw/2)
+    state_msg.pose.orientation.w = np.cos(yaw/2)
+    set_state = ros.ServiceProxy('/gazebo/set_model_state', SetModelState)
+    set_state(state_msg)
+    sleep(0.02)
+
 
 # semi random generator 
 class MyRandomGenerator:
