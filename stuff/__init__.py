@@ -22,37 +22,50 @@ class Pose:
         return f'x: {self.x}, y: {self.y}, ψ: {self.ψ}'
 
 class DebugStuff:
-    def __init__(self, show_imgs) -> None:
+    def __init__(self, show_imgs=True) -> None:
         self.gmap, self.gframe, self.gtopview = None, None, None
         self.show_imgs = show_imgs
         self.names2imgs = {'gmap':self.gmap, 'gframe':self.gframe, 'gtopview':self.gtopview}
         if show_imgs:
             cv.namedWindow('gmap', cv.WINDOW_NORMAL)
-            cv.resizeWindow('gmap', 800, 600)
+            # cv.resizeWindow('gmap', 800, 600)
+            WINDS = 600
+            cv.resizeWindow('gmap', 2*WINDS, 2*WINDS)
             cv.namedWindow('gtopview', cv.WINDOW_NORMAL)
-            cv.resizeWindow('gtopview', 400, 400)
+            cv.resizeWindow('gtopview', WINDS, WINDS)
             cv.namedWindow('gframe', cv.WINDOW_NORMAL)
-            cv.resizeWindow('gframe', 400, 400)
+            cv.resizeWindow('gframe', WINDS, WINDS)
 
     def show(self, cp:Pose=None):
         if self.gmap is not None: 
             if cp is not None:
-                x,y = m2pix(cp.x), m2pix(cp.y)
-                B = 800
+                x,y = m2pix(cp.xy)
+                cn = m2pix(get_car_corners(cp) - cp.xy) #get car corners in the car frame
+                B = 1200 # distance around the car to show
                 tmap = np.zeros((2*B,2*B,3), np.uint8)
-                xmin, xmax = max(0, x-B), min(self.gmap.shape[1], x+B)
-                ymin, ymax = max(0, y-B), min(self.gmap.shape[0], y+B)
-                tmap = self.gmap[ymin:ymax, xmin:xmax]
-                #add black borders to make it a square back
-                if xmin == 0: tmap = np.concatenate((np.zeros((tmap.shape[0], B, 3), np.uint8), tmap), axis=1)
-                if xmax == self.gmap.shape[1]: tmap = np.concatenate((tmap, np.zeros((tmap.shape[0], B, 3), np.uint8)), axis=1)
-                if ymin == 0: tmap = np.concatenate((np.zeros((B, tmap.shape[1], 3), np.uint8), tmap), axis=0)
-                if ymax == self.gmap.shape[0]: tmap = np.concatenate((tmap, np.zeros((B, tmap.shape[1], 3), np.uint8)), axis=0)
+                mh, mw = self.gmap.shape[:2] #map height and width
+                xmin, xmax = max(0, x-B), min(mw, x+B) #x min and max in the tmap
+                ymin, ymax = max(0, y-B), min(mh, y+B) #y min and max in the tmap
+                dt, db, dr, dl = ymin - (y-B), (y+B) - ymax, xmin - (x-B), (x+B) - xmax #top, bottom, right, left
+                print(f'dt,db,dr,dl: {dt},{db},{dr},{dl}')
+                xc, yc = x-xmin, y-ymin #car position in the tmap
+                print(f'x,y: ({x},{y}), xmin,xmax: ({xmin},{xmax}), ymin,ymax: ({ymin},{ymax}), xc,yc: ({xc},{yc})')
+                tmap = self.gmap[ymin:ymax, xmin:xmax].copy() #copy the map to the tmap
+                cn = cn + np.array([xc, yc]) #car corners in the tmap
+                cv.polylines(tmap, [cn], True, (0, 255, 0), 3, cv.LINE_AA)
+                cv.circle(tmap, (xc, yc), 8, (0, 255, 0), -1)
+                # add borders
+                if dt > 0: tmap = np.concatenate((np.zeros((dt, tmap.shape[1], 3), np.uint8), tmap), axis=0)
+                if db > 0: tmap = np.concatenate((tmap, np.zeros((db, tmap.shape[1], 3), np.uint8)), axis=0)
+                if dr > 0: tmap = np.concatenate((np.zeros((tmap.shape[0], dr, 3), np.uint8), tmap), axis=1)
+                if dl > 0: tmap = np.concatenate((tmap, np.zeros((tmap.shape[0], dl, 3), np.uint8)), axis=1)
+
+                
             else: tmap = self.gmap
             cv.imshow('gmap', cv.flip(tmap, 0))
         if self.gtopview is not None: cv.imshow('gtopview', self.gtopview)
         if self.gframe is not None: cv.imshow('gframe', self.gframe)
-        if cv.waitKey(1) == 27: exit(0)
+        if cv.waitKey(1) == 27: exit(0) #press esc to exit
         
 
 def diff_angle(angle1, angle2):
@@ -109,19 +122,17 @@ def create_window(name, size=(1920,1080)):
     cv.moveWindow(name, 2560, 0)
 
 #function to draw the car on the map
-def draw_car(map, cp:Pose, color=(0, 255, 0),  draw_body=True):
+def draw_car(map, cp:Pose, color=(0, 255, 0)):
+    cn = get_car_corners(cp) #get car corners
+    cv.polylines(map, [m2pix(cn)], True, color, 3, cv.LINE_AA) #draw car body
+
+def get_car_corners(cp:Pose):
     assert isinstance(cp, Pose)
-    x, y, ψ = cp.x, cp.y, cp.ψ
+    x, y, ψ = cp.xyp
     cl, cw = LENGTH-CM2WB, WIDTH #car length and width
-    #find 4 corners not rotated cw
-    corners = np.array([[-CM2WB,cw/2],[cl,cw/2],[cl,-cw/2],[-CM2WB,-cw/2]])
-    #rotate corners
-    rot_matrix = np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]])
-    corners = corners @ rot_matrix.T
-    #add car position
-    corners = corners + np.array([x,y]) #add car position
-    if draw_body: cv.polylines(map, [m2pix(corners)], True, color, 3, cv.LINE_AA) #draw car body
-    return map
+    cn = np.array([[-CM2WB,cw/2],[cl,cw/2],[cl,-cw/2],[-CM2WB,-cw/2]]) #find 4 corners not rotated cw
+    cn = cn @ np.array([[np.cos(ψ), -np.sin(ψ)],[np.sin(ψ), np.cos(ψ)]]).T + np.array([x,y]) #rotate corners and add car position
+    return cn
 
 ZOFF = 0.03
 FRONT_CAM = {'fov':CAM_FOV,'θ':CAM_PITCH,'x':0.0,'z':0.2+ZOFF, 'w':320, 'h':240}
