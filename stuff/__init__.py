@@ -34,12 +34,13 @@ class DebugStuff:
             cv.namedWindow('gtopview', cv.WINDOW_NORMAL)
             cv.resizeWindow('gtopview', WINDS, WINDS)
             cv.namedWindow('gframe', cv.WINDOW_NORMAL)
-            cv.resizeWindow('gframe', WINDS, WINDS)
+            cv.resizeWindow('gframe', WINDS, int(240/320*WINDS))
 
     def show(self, cp:Pose=None):
         if self.gmap is not None: 
             if cp is not None:
                 x,y = m2pix(cp.xy)
+                cv.circle(self.gmap, (x,y), 3, (150, 255, 0), -1)
                 cn = m2pix(get_car_corners(cp) - cp.xy) #get car corners in the car frame
                 B = 1200 # distance around the car to show
                 tmap = np.zeros((2*B,2*B,3), np.uint8)
@@ -47,25 +48,22 @@ class DebugStuff:
                 xmin, xmax = max(0, x-B), min(mw, x+B) #x min and max in the tmap
                 ymin, ymax = max(0, y-B), min(mh, y+B) #y min and max in the tmap
                 dt, db, dr, dl = ymin - (y-B), (y+B) - ymax, xmin - (x-B), (x+B) - xmax #top, bottom, right, left
-                print(f'dt,db,dr,dl: {dt},{db},{dr},{dl}')
                 xc, yc = x-xmin, y-ymin #car position in the tmap
-                print(f'x,y: ({x},{y}), xmin,xmax: ({xmin},{xmax}), ymin,ymax: ({ymin},{ymax}), xc,yc: ({xc},{yc})')
                 tmap = self.gmap[ymin:ymax, xmin:xmax].copy() #copy the map to the tmap
                 cn = cn + np.array([xc, yc]) #car corners in the tmap
                 cv.polylines(tmap, [cn], True, (0, 255, 0), 3, cv.LINE_AA)
                 cv.circle(tmap, (xc, yc), 8, (0, 255, 0), -1)
-                # add borders
-                if dt > 0: tmap = np.concatenate((np.zeros((dt, tmap.shape[1], 3), np.uint8), tmap), axis=0)
-                if db > 0: tmap = np.concatenate((tmap, np.zeros((db, tmap.shape[1], 3), np.uint8)), axis=0)
-                if dr > 0: tmap = np.concatenate((np.zeros((tmap.shape[0], dr, 3), np.uint8), tmap), axis=1)
-                if dl > 0: tmap = np.concatenate((tmap, np.zeros((tmap.shape[0], dl, 3), np.uint8)), axis=1)
+                tmap = cv.copyMakeBorder(tmap, dt, db, dr, dl, cv.BORDER_CONSTANT, value=(0, 0, 0)) #add borders
 
                 
             else: tmap = self.gmap
             cv.imshow('gmap', cv.flip(tmap, 0))
         if self.gtopview is not None: cv.imshow('gtopview', self.gtopview)
         if self.gframe is not None: cv.imshow('gframe', self.gframe)
-        if cv.waitKey(1) == 27: exit(0) #press esc to exit
+        if cv.waitKey(1) == 27: 
+            #pause ros time
+            sp.run('rosservice call /gazebo/pause_physics', shell=True, capture_output=True)
+            exit(0) #press esc to exit
         
 
 def diff_angle(angle1, angle2):

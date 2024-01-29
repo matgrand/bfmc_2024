@@ -91,8 +91,9 @@ if __name__ == '__main__':
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, 
                   path_planner=pp, desired_speed=DESIRED_SPEED, debug_stuff=d)
 
-    if SIMULATOR_FLAG: sp.run('rosservice call gazebo/unpause_physics', shell=True)
     car.stop()
+    if SIMULATOR_FLAG: sp.run('rosservice call gazebo/unpause_physics', shell=True)
+    
     loop_time = 1.0 / TARGET_FPS
     # main loop
     while not ros.is_shutdown():
