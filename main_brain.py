@@ -87,9 +87,9 @@ if __name__ == '__main__':
     #initiliaze all the neural networks for detection and lane following
     dd = Detection(advanced_sl=USE_ADVANCED_NETWORK_FOR_STOPLINES)
 
-    #place car to node 462
-    x,y = pp.get_xy('462')
-    place_car(x,y,0.0)
+    # #place car to node 462
+    # x,y = pp.get_xy('462')
+    # place_car(x,y,0.0)
 
     #initiliaze the brain
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, 
