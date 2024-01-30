@@ -29,6 +29,7 @@ class DebugStuff:
         self.gmap, self.gframe, self.gtopview = None, None, None
         self.show_imgs = show_imgs
         self.names2imgs = {'gmap':self.gmap, 'gframe':self.gframe, 'gtopview':self.gtopview}
+        self.he, self.pa_color = 0.0, (0,0,0) # heading error & color
         if show_imgs:
             cv.namedWindow('gmap', cv.WINDOW_NORMAL)
             # cv.resizeWindow('gmap', 800, 600)
@@ -40,13 +41,23 @@ class DebugStuff:
             cv.resizeWindow('gframe', WINDS, int(240/320*WINDS))
 
     def show(self, cp:Pose=None):
-        if self.gmap is not None: 
+        if self.gmap is not None and self.gframe is not None and self.gtopview is not None:
             if cp is not None:
+                color = (0,200,0)
                 x,y = m2pix(cp.xy)
-                cv.circle(self.gmap, (x,y), 3, (0, 100, 255), -1)
-                cc = get_car_corners(cp)
-                cv.polylines(self.gtopview, [project_onto_frame(cc, cp, TOP_CAM)], True, (0, 100, 255), 1, cv.LINE_AA)
+                cv.circle(self.gmap, (x,y), 5, color, -1) #draw car position
+                cc = get_car_corners(cp) #get car corners
+                SHOW_DIST = 0.55 # distance ahead just to show
+                pa = np.array([SHOW_DIST*np.cos(self.he),SHOW_DIST*np.sin(self.he)]) # point ahead
+                cv.line(self.gframe, project_onto_frame(pa, cam=FRONT_CAM), (self.gframe.shape[1]//2, self.gframe.shape[0]), self.pa_color, 2) #pa frame
+                cv.line(self.gtopview, project_onto_frame(pa, cam=TOP_CAM), project_onto_frame(np.array([0,0]), cam=TOP_CAM), self.pa_color, 2) #pa topview
+                cv.polylines(self.gtopview, [project_onto_frame(cc, cp, TOP_CAM)], True, color, 1, cv.LINE_AA) #draw car body topview
+                # move pa and orig to world frame
+                R = np.array([[np.cos(cp.ψ), -np.sin(cp.ψ)],[np.sin(cp.ψ), np.cos(cp.ψ)]])
+                pa = pa @ R.T + cp.xy
+                #move points for plotting on map
                 cn = m2pix(cc - cp.xy) #get car corners in the car frame
+                pa = m2pix(pa - cp.xy) #get point ahead in the car frame
                 B = 1200 # distance around the car to show
                 tmap = np.zeros((2*B,2*B,3), np.uint8)
                 mh, mw = self.gmap.shape[:2] #map height and width
@@ -56,8 +67,10 @@ class DebugStuff:
                 xc, yc = x-xmin, y-ymin #car position in the tmap
                 tmap = self.gmap[ymin:ymax, xmin:xmax].copy() #copy the map to the tmap
                 cn = cn + np.array([xc, yc]) #car corners in the tmap
-                cv.polylines(tmap, [cn], True, (0, 100, 255), 3, cv.LINE_AA)
-                cv.circle(tmap, (xc, yc), 8, (0, 100, 255), -1)
+                pa = pa + np.array([xc, yc]) #point ahead in the tmap
+                cv.polylines(tmap, [cn], True, color, 3, cv.LINE_AA) #draw car body
+                cv.circle(tmap, (xc, yc), 8, faint_color(color), -1) #draw car position
+                cv.line(tmap, (xc, yc), tuple(pa), self.pa_color, 10) #draw point ahead
                 tmap = cv.copyMakeBorder(tmap, dt, db, dr, dl, cv.BORDER_CONSTANT, value=(0, 0, 0)) #add borders
 
             else: tmap = self.gmap
@@ -260,7 +273,8 @@ def get_stopline_coords(slx, sly=0.0, slyaw=0.0, cp:Pose=None):
     sl = sl + np.array([xc, yc]) #move stopline to the car position
     return sl
 
-
+def faint_color(color, alpha=0.6):
+    return tuple([int(alpha*c)%255 for c in color])
 
 # semi random generator 
 class MyRandomGenerator:

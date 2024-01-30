@@ -218,9 +218,13 @@ class PathPlanning():
         for node in self.all_nodes:
             x,y = self.get_xy(node)
             x,y = x, MAP_H_M - y
-            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 160), -1) # circle on node position
-            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 160), 2) # draw node name
+            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 200), -1) # circle on node position
+            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 4) # draw node name shadow
+            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2) # draw node name
         self.map = cv.flip(self.map, 0) # flip the map back
+
+        #convert map to grayscale and back to color
+        self.map = cv.cvtColor(cv.cvtColor(self.map, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
 
         # # draw edges
         # for edge in self.all_edges:
@@ -229,7 +233,7 @@ class PathPlanning():
         #     cv.line(self.map, p2cv(p1), p2cv(p2), (0, 255, 255), 2)
 
         # draw trajectory
-        cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=4, lineType=cv.LINE_AA)
+        cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=6, lineType=cv.LINE_AA)
 
     def get_closest_start_node(self, x, y):
         ''' Returns the closes node to the given x,y coordinates '''

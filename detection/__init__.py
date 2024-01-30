@@ -9,7 +9,7 @@ this_dir = dirname(realpath(__file__))
 
 LANE_KEEPER_PATH = join(this_dir, 'models/lane_keeper_small.onnx')
 DISTANCE_POINT_AHEAD = 0.35
-CAR_LENGTH = 0.4
+LK_CORRECTION = 1.1
 
 LANE_KEEPER_AHEAD_PATH = join(this_dir,'models/lane_keeper_ahead.onnx')
 DISTANCE_POINT_AHEAD_AHEAD = 0.6
@@ -17,7 +17,7 @@ DISTANCE_POINT_AHEAD_AHEAD = 0.6
 STOP_LINE_ESTIMATOR_PATH = join(this_dir,'models/stop_line_estimator.onnx')
 
 STOP_LINE_ESTIMATOR_ADV_PATH = join(this_dir,'models/stop_line_estimator_advanced.onnx')
-PREDICTION_OFFSET = 0.32
+PREDICTION_OFFSET = 0.34
 
 IMG_SIZE = (32,32)  #match with trainer
 
@@ -72,7 +72,7 @@ class Detection:
         start_time = time()
         blob = self.preprocess(frame, cutoff=1/3, faster=faster)
         self.lane_keeper.setInput(blob)
-        out = -self.lane_keeper.forward() #### NOTE: MINUS SIGN IF OLD NET
+        out = -self.lane_keeper.forward() * LK_CORRECTION #### NOTE: MINUS SIGN IF OLD NET
         if faster: e2, e3 = out[0,0], out[0,1]
         else : e2, e3 = (out[0,0] - out[1,0]) / 2.0, (out[0,1] - out[1,1]) / 2.0
 
