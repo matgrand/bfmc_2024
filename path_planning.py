@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from stuff import *
-import networkx
+import networkx as nx
 from pyclothoids import Clothoid
 from numpy.linalg import norm
 
@@ -53,12 +53,11 @@ class PathPlanning():
     def compute_shortest_path(self, source=473, target=207):
         ''' Generates the shortest path between source and target nodes using Clothoid interpolation '''
         src, tgt = str(source), str(target)
-        route_nx = []
-
+        route_nx = [] # list of nodes in the route
         # generate the shortest route between source and target      
-        route_nx = list(networkx.shortest_path(self.G, source=src, target=tgt)) 
+        route_nx = list(nx.shortest_path(self.G, source=src, target=tgt)) 
         # generate a route subgraph       
-        routeG = networkx.DiGraph() #reset the graph
+        routeG = nx.DiGraph() #reset the graph
         routeG.add_nodes_from(route_nx) # add nodes
         for i in range(len(route_nx)-1): # add edges
             routeG.add_edges_from( [ (route_nx[i], route_nx[i+1], self.G.get_edge_data(route_nx[i],route_nx[i+1]))])
@@ -219,8 +218,8 @@ class PathPlanning():
         for node in self.all_nodes:
             x,y = self.get_xy(node)
             x,y = x, MAP_H_M - y
-            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 180), -1) # circle on node position
-            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 180), 2) # draw node name
+            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 160), -1) # circle on node position
+            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 160), 2) # draw node name
         self.map = cv.flip(self.map, 0) # flip the map back
 
         # # draw edges

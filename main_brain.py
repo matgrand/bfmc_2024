@@ -87,9 +87,7 @@ if __name__ == '__main__':
     #initiliaze all the neural networks for detection and lane following
     dd = Detection(advanced_sl=USE_ADVANCED_NETWORK_FOR_STOPLINES)
 
-    # #place car to node 462
-    # x,y = pp.get_xy('462')
-    # place_car(x,y,0.0)
+    x,y = pp.get_xy('462'); place_car(x,y,0.0) #place car to node 462
 
     #initiliaze the brain
     brain = Brain(car=car, controller=cc, controller_sp=cc_sp, detection=dd, env=env, 
@@ -103,7 +101,7 @@ if __name__ == '__main__':
     while not ros.is_shutdown():
         loop_start_time = time() #start time of the loop
 
-        if not SIMULATOR_FLAG: #PI
+        if not SIMULATOR_FLAG: #PI -> get image from camera
             ret, frame = cap.read()
             brain.car.frame = frame
             if not ret:

@@ -94,10 +94,10 @@ class CarSim(Car):
         self.t = float(data.t)
         #true position NOTE: not in real car
         xcom, ycom = float(data.x), float(data.y) #center of mass
-        # self.x_true = xcom
-        # self.y_true = ycom
-        self.x_true = xcom - np.cos(self.yaw_true)*CM2WB
-        self.y_true = ycom - np.sin(self.yaw_true)*CM2WB
+        # self.x_true = xcom # center of map reference frame
+        # self.y_true = ycom # center of map reference frame
+        self.x_true = xcom - np.cos(self.yaw_true)*CM2WB # rear axle reference frame
+        self.y_true = ycom - np.sin(self.yaw_true)*CM2WB # rear axle reference frame
 
     def encoder_distance_callback(self, data) -> None:
         '''Callback when an encoder distance message is received

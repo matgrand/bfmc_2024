@@ -44,7 +44,9 @@ class DebugStuff:
             if cp is not None:
                 x,y = m2pix(cp.xy)
                 cv.circle(self.gmap, (x,y), 3, (0, 100, 255), -1)
-                cn = m2pix(get_car_corners(cp) - cp.xy) #get car corners in the car frame
+                cc = get_car_corners(cp)
+                cv.polylines(self.gtopview, [project_onto_frame(cc, cp, TOP_CAM)], True, (0, 100, 255), 1, cv.LINE_AA)
+                cn = m2pix(cc - cp.xy) #get car corners in the car frame
                 B = 1200 # distance around the car to show
                 tmap = np.zeros((2*B,2*B,3), np.uint8)
                 mh, mw = self.gmap.shape[:2] #map height and width
@@ -55,7 +57,7 @@ class DebugStuff:
                 tmap = self.gmap[ymin:ymax, xmin:xmax].copy() #copy the map to the tmap
                 cn = cn + np.array([xc, yc]) #car corners in the tmap
                 cv.polylines(tmap, [cn], True, (0, 100, 255), 3, cv.LINE_AA)
-                cv.circle(tmap, (xc, yc), 8, (0, 255, 0), -1)
+                cv.circle(tmap, (xc, yc), 8, (0, 100, 255), -1)
                 tmap = cv.copyMakeBorder(tmap, dt, db, dr, dl, cv.BORDER_CONSTANT, value=(0, 0, 0)) #add borders
 
             else: tmap = self.gmap
@@ -245,6 +247,19 @@ def place_car(x,y,yaw):
     set_state = ros.ServiceProxy('/gazebo/set_model_state', SetModelState)
     set_state(state_msg)
     sleep(0.02)
+
+def get_stopline_coords(slx, sly=0.0, slyaw=0.0, cp:Pose=None):
+    SL_WIDTH = 0.4 #stopline width [m]
+    xc, yc, yawc = cp.xyp
+    Rc = np.array([[np.cos(yawc), -np.sin(yawc)],[np.sin(yawc), np.cos(yawc)]]) #car rotation matrix
+    Rsl = np.array([[np.cos(slyaw), -np.sin(slyaw)],[np.sin(slyaw), np.cos(slyaw)]]) #stopline rotation matrix
+    sl = np.array([[0.0, -SL_WIDTH/2.0],[0.0, SL_WIDTH/2.0]]) #stopline in the stopline frame
+    sl = sl @ Rsl.T #rotate stopline
+    sl = sl + np.array([slx, sly]) #move stopline
+    sl = sl @ Rc.T #rotate stopline to the car frame
+    sl = sl + np.array([xc, yc]) #move stopline to the car position
+    return sl
+
 
 
 # semi random generator 

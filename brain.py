@@ -512,28 +512,31 @@ class Brain:
 
         if decide_next_state:
             print('Deciding next state, based on next event...')
-            next_event_name = self.next_event.name
+            nen = self.next_event.name
             # Events with stopline
-            if next_event_name == INTERSECTION_STOP_EVENT:
-                self.switch_to_state(WAITING_AT_STOPLINE) 
-            elif next_event_name == INTERSECTION_TRAFFIC_LIGHT_EVENT:
-                self.switch_to_state(WAITING_FOR_GREEN)
-            elif next_event_name == INTERSECTION_PRIORITY_EVENT:
-                self.switch_to_state(INTERSECTION_NAVIGATION)
-            elif next_event_name == JUNCTION_EVENT:
-                self.switch_to_state(INTERSECTION_NAVIGATION) #TODO: careful with this
-            elif next_event_name == ROUNDABOUT_EVENT:
-                self.switch_to_state(ROUNDABOUT_NAVIGATION)
-            elif next_event_name == CROSSWALK_EVENT:
-                self.switch_to_state(CROSSWALK_NAVIGATION) #directly go to lane keeping, the pedestrian will be managed in that state
+            if nen == INTERSECTION_STOP_EVENT: self.switch_to_state(WAITING_AT_STOPLINE) 
+            elif nen == INTERSECTION_TRAFFIC_LIGHT_EVENT: self.switch_to_state(WAITING_FOR_GREEN)
+            elif nen == INTERSECTION_PRIORITY_EVENT: self.switch_to_state(INTERSECTION_NAVIGATION)
+            elif nen == JUNCTION_EVENT: self.switch_to_state(INTERSECTION_NAVIGATION) 
+            elif nen == ROUNDABOUT_EVENT: self.switch_to_state(ROUNDABOUT_NAVIGATION)
+            elif nen == CROSSWALK_EVENT: self.switch_to_state(CROSSWALK_NAVIGATION) 
             # Events without stopline = LOGIC ERROR
-            elif next_event_name == PARKING_EVENT:
-                self.error('WARNING: UNEXPECTED STOP LINE FOUND WITH PARKING AS NEXT EVENT')
-            elif next_event_name == HIGHWAY_EXIT_EVENT:
-                self.error('WARNING: UNEXPECTED STOP LINE FOUND WITH HIGHWAY EXIT AS NEXT EVENT')
-            else:
-                self.error('ERROR: UNEXPECTED STOP LINE FOUND WITH UNKNOWN EVENT AS NEXT EVENT')
+            elif nen == PARKING_EVENT: self.error('WARNING: UNEXPECTED STOP LINE FOUND WITH PARKING AS NEXT EVENT')
+            elif nen == HIGHWAY_EXIT_EVENT: self.error('WARNING: UNEXPECTED STOP LINE FOUND WITH HIGHWAY EXIT AS NEXT EVENT')
+            else: self.error('ERROR: UNEXPECTED STOP LINE FOUND WITH UNKNOWN EVENT AS NEXT EVENT')
             self.activate_routines([]) #deactivate all routines
+            if SHOW_IMGS: # draw the stopline on all imgs
+                d = self.detect.est_dist_to_stop_line if self.stop_line_distance_median is None else self.stop_line_distance_median - self.car.encoder_distance
+                sl = get_stopline_coords(d, 0.0, 0.0, self.car.pose)
+                cv.line(self.d.gmap, m2pix(sl[0]), m2pix(sl[1]), (0, 0, 255), 12)
+                psl = project_onto_frame(sl, self.car.pose, FRONT_CAM)
+                cv.line(self.d.gframe, psl[0], psl[1], (0, 0, 255), 5)
+                psl = project_onto_frame(sl, self.car.pose, TOP_CAM)
+                cv.line(self.d.gtopview, psl[0], psl[1], (0, 0, 255), 5)
+                
+                
+
+                
 
     def intersection_navigation(self):
         self.activate_routines([])
@@ -597,9 +600,7 @@ class Brain:
 
             # get orientation of the car in the stop line frame
             alpha = self.detect.detect_yaw_stopline(self.car.frame, SHOW_IMGS and False) * 0.8
-            if SIMULATOR_FLAG: 
-                print(f'alpha est: {np.rad2deg(alpha):.1f}')
-                print(f'alpha true: {np.rad2deg(diff_angle(self.car.yaw_true, self.next_event.yaw_stopline)):.1f}')
+            # NOTE: alternatively, one could use the absolute yaw of the car (if accurate enough) and the yaw of the stopline
             
             if SHOW_IMGS: # draw the stopline 
                 LW = 0.4 #lane width
@@ -619,8 +620,7 @@ class Brain:
                     self.car.yaw += diff
             # assert abs(alpha) < np.pi/6, f'Car orientation wrt stopline is too big, it needs to be better aligned, alpha = {alpha}' #TODO uncomment this line
             R = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]]) #rotation matrix
-            # get position of the car in the stop line frame
-            local_path_cf = local_path_slf_rot 
+            local_path_cf = local_path_slf_rot # get position of the car in the stop line frame
             local_path_cf = local_path_cf @ R #NOTE: rotation first if we ignore the lateral error and consider only the euclidean distance from the line
             local_path_cf = local_path_cf - car_position_slf #cf = car frame
             self.curr_state.var1 = local_path_cf #var1 hold the local path
@@ -671,12 +671,8 @@ class Brain:
             true_pos_wf = np.array([self.car.x_true, self.car.y_true]) # show the true position to check if they match
             cv.circle(self.d.gmap, m2pix(true_pos_wf), 7, (0, 255, 0), 2)
 
-        if np.abs(get_curvature(local_path_cf)) < 0.1: #the local path is straight
-            print('straight')
-            max_idx = 3
-        else: #curvy path
-            max_idx = len(local_path_cf)-1  #follow until the end
-            print('curvy')
+        if np.abs(get_curvature(local_path_cf)) < 0.1: max_idx = 3 #the local path is straight -> follow only 3 points
+        else: max_idx = len(local_path_cf)-1  #curvy path -> follow until the end
         # State exit conditions
         if idx_point_ahead >= max_idx: #we reached the end of the path
             self.switch_to_state(LANE_FOLLOWING)
@@ -1404,8 +1400,7 @@ class Brain:
         if SHOW_IMGS and self.d.gframe is not None and dist is not None:
             #get stopline extreme points in global frame
             sl_pos = self.car.pose.xy + np.array([dist*np.cos(self.car.yaw_true), dist*np.sin(self.car.yaw_true)])
-            #draw on gmap
-            if dist < 0.5+0.4: cv.circle(self.d.gmap, m2pix(sl_pos), 8, (0,180,40), 2)
+            if dist < 0.5+0.4: cv.circle(self.d.gmap, m2pix(sl_pos), 8, (0,180,40), 2) #draw on gmap
             #draw an horizontal line at the stop line
             sl_pos = np.array([dist, 0.0]) # stop line position in car frame
             color, th = ((0,0,255), 4) if dist < 0.5+0.4 else ((0,0,125), 2)
@@ -1420,8 +1415,7 @@ class Brain:
             # var1 holds last detection time
             last_detection_time = self.routines[DETECT_STOP_LINE].var1 if self.routines[DETECT_STOP_LINE].var1 is not None else time() - 1.0
             curr_time = time()
-            if curr_time - last_detection_time > 0.5:
-                # var2 holds the list of past detections, reset 
+            if curr_time - last_detection_time > 0.5: # var2 holds the list of past detections, reset 
                 self.routines[DETECT_STOP_LINE].var2 = past_detections = deque(maxlen=DETECTION_DEQUE_LENGTH)
             adapted_distance = dist + self.car.encoder_distance
             past_detections.append(adapted_distance)
@@ -1535,15 +1529,16 @@ class Brain:
     
     #===================== STATE MACHINE MANAGEMENT =====================#
     def run(self):
-        #assign images to debug class
+        # debug: assign images to debug class
         if SIMULATOR_FLAG: self.d.gtopview = self.car.top_frame.copy()
         self.d.gframe = self.car.frame.copy()
         if SHOW_IMGS and self.pp.path is not None:
             #draw entire path on top frame and frame
-            draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose, color=(0,255,0), thickness=1, cam=TOP_CAM)
-            draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose, color=(0,255,0), thickness=1, cam=FRONT_CAM)
-            draw_points_on_frame(self.d.gframe, np.array([0.0,0.0]), color=(255,0,0), thickness=3, cam=FRONT_CAM)
-            draw_points_on_frame(self.d.gtopview, np.array([0.0,0.0]), color=(255,0,0), thickness=3, cam=TOP_CAM)
+            draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose, color=(200,200,0), thickness=1, cam=TOP_CAM)
+            draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose, color=(200,200,0), thickness=1, cam=FRONT_CAM)
+            draw_points_on_frame(self.d.gframe, np.array([0.0,0.0]), color=(0,100,255), thickness=3, cam=FRONT_CAM)
+            draw_points_on_frame(self.d.gtopview, np.array([0.0,0.0]), color=(0,100,255), thickness=3, cam=TOP_CAM)
+        
         # print and run stuff
         ts = gts()[0]
         print('\n' * gts().lines, end='')
