@@ -249,3 +249,14 @@ DELTA_ANGLE = np.rad2deg(MAX_SERVO_ANGULAR_VELOCITY) / STEER_UPDATE_FREQ
 MAX_STEER_COMMAND_FREQ = 50.0 # [Hz], If steer commands are sent at an higher freq they will be discarded
 MAX_STEER_SAMPLES = max(int((2*SERVO_DEAD_TIME_DELAY) * MAX_STEER_COMMAND_FREQ), 10) # max number of samples to store in the buffer
 
+# colors
+GREEN = (0, 255, 0)
+DGREEN = (0, 150, 0)
+RED = (0, 0, 255)
+DRED = (0, 0, 150)
+BLUE = (255, 0, 0)
+DBLUE = (150, 0, 0)
+YELLOW = (0, 255, 255)
+DYELLOW = (0, 150, 150)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
