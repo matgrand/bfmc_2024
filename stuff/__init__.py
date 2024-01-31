@@ -49,9 +49,13 @@ class DebugStuff:
                 cc = get_car_corners(cp) #get car corners
                 SHOW_DIST = 0.55 # distance ahead just to show
                 pa = np.array([SHOW_DIST*np.cos(self.he),SHOW_DIST*np.sin(self.he)]) # point ahead
-                cv.line(self.gframe, project_onto_frame(pa, cam=FRONT_CAM), (self.gframe.shape[1]//2, self.gframe.shape[0]), self.pa_color, 2) #pa frame
-                cv.line(self.gtopview, project_onto_frame(pa, cam=TOP_CAM), project_onto_frame(np.array([0,0]), cam=TOP_CAM), self.pa_color, 2) #pa topview
-                cv.polylines(self.gtopview, [project_onto_frame(cc, cp, TOP_CAM)], True, color, 1, cv.LINE_AA) #draw car body topview
+                cv.line(self.gframe, project_onto_frame(pa, cam=FRONT_CAM), (self.gframe.shape[1]//2, self.gframe.shape[0]), BLACK, 8) #pa frame shadow
+                cv.line(self.gframe, project_onto_frame(pa, cam=FRONT_CAM), (self.gframe.shape[1]//2, self.gframe.shape[0]), self.pa_color, 4) #pa frame
+                cv.line(self.gtopview, project_onto_frame(pa, cam=TOP_CAM), project_onto_frame(np.array([0,0]), cam=TOP_CAM), BLACK, 8) #pa topview shadow
+                cv.line(self.gtopview, project_onto_frame(pa, cam=TOP_CAM), project_onto_frame(np.array([0,0]), cam=TOP_CAM), self.pa_color, 3) #pa topview
+                cv.circle(self.gtopview, project_onto_frame(np.array([0,0]), cam=TOP_CAM), 6, BLACK, -1) #draw car position shadow
+                cv.circle(self.gtopview, project_onto_frame(np.array([0,0]), cam=TOP_CAM), 3, color, -1) #draw car position
+                # cv.polylines(self.gtopview, [project_onto_frame(cc, cp, TOP_CAM)], True, color, 1, cv.LINE_AA) #draw car body topview
                 R = np.array([[np.cos(cp.ψ), -np.sin(cp.ψ)],[np.sin(cp.ψ), np.cos(cp.ψ)]])
                 pa = pa @ R.T + cp.xy # move pa and orig to world frame
                 #move points for plotting on map
@@ -67,12 +71,14 @@ class DebugStuff:
                 tmap = self.gmap[ymin:ymax, xmin:xmax].copy() #copy the map to the tmap
                 cn = cn + np.array([xc, yc]) #car corners in the tmap
                 pa = pa + np.array([xc, yc]) #point ahead in the tmap
-                cv.polylines(tmap, [cn], True, color, 3, cv.LINE_AA) #draw car body
+                cv.polylines(tmap, [cn], True, BLACK, 15, cv.LINE_AA) #draw car body shadow
+                cv.polylines(tmap, [cn], True, color, 7, cv.LINE_AA) #draw car body
+                cv.line(tmap, (xc, yc), tuple(pa), BLACK, 18) #draw point ahead shadow
                 cv.line(tmap, (xc, yc), tuple(pa), self.pa_color, 10) #draw point ahead
-                cv.circle(tmap, (xc, yc), 8, color, -1) #draw car position
+                cv.circle(tmap, (xc, yc), 9, BLACK, -1) #draw car position shadow
+                cv.circle(tmap, (xc, yc), 5, color, -1) #draw car position
                 draw_points_on_frame(self.gtopview, np.array([0.0,0.0]), cp, color, 2, TOP_CAM) #draw car position on topview
                 tmap = cv.copyMakeBorder(tmap, dt, db, dr, dl, cv.BORDER_CONSTANT, value=BLACK) #add borders tokeep the square
-
             else: tmap = self.gmap
             cv.imshow('gmap', cv.flip(tmap, 0))
         if self.gtopview is not None: cv.imshow('gtopview', self.gtopview)

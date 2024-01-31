@@ -631,21 +631,19 @@ class Brain:
                 #project the whole path (true) and the local path (est) onto the frame
                 color = YELLOW
                 draw_points_on_frame(self.d.gframe, local_path_cf, color=faint_color(color))
-                draw_points_on_frame(self.d.gtopview, local_path_cf,
-                                      color=faint_color(color), cam=TOP_CAM)
+                draw_points_on_frame(self.d.gtopview, local_path_cf,color=faint_color(color), cam=TOP_CAM)
                 self.curr_state.var2 = np.array([self.car.x_true, self.car.y_true]) #var2 hold original position
-                true_start_pos_wf = self.curr_state.var2 #true start position in world frame    
                 alpha = alpha + stop_line_yaw #yaw of the car wrt the world frame
                 R = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]]) #rotation matrix
                 est_car_pos_slf = car_position_slf
                 est_car_pos_slf_rot = est_car_pos_slf @ R.T
                 est_car_pos_wf = est_car_pos_slf_rot + stop_line_position
-                # cv.circle(self.d.gmap, m2pix(est_car_pos_wf), 25, color, 5)
-                # cv.circle(self.d.gmap, m2pix(true_start_pos_wf), 30, (0,255,0), 5)
                 ecc = get_car_corners(Pose(est_car_pos_wf[0], est_car_pos_wf[1], alpha)) #estimated car corners
                 tcc = get_car_corners(self.car.pose) #true car corners
-                cv.polylines(self.d.gmap, [m2pix(ecc)], True, color, 5)
-                cv.polylines(self.d.gmap, [m2pix(tcc)], True, (0,255,0), 5)   
+                cv.polylines(self.d.gmap, [m2pix(tcc)], True, BLACK, 12) #draw car shadow
+                cv.polylines(self.d.gmap, [m2pix(ecc)], True, BLACK, 12) #draw the estimated car pos
+                cv.polylines(self.d.gmap, [m2pix(tcc)], True, DGREEN, 7) #draw the true car pos
+                cv.polylines(self.d.gmap, [m2pix(ecc)], True, color, 2) #draw the estimated car pos
 
 
         D = POINT_AHEAD_DISTANCE_LOCAL_TRACKING
