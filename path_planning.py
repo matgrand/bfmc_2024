@@ -99,6 +99,19 @@ class PathPlanning():
         return self.path
     
     def augment_path(self, draw=True):
+        if draw: 
+            # draw nodes
+            self.map = cv.flip(self.map, 0) # flip the map vertically
+            for node in self.all_nodes:
+                x,y = self.get_xy(node)
+                x,y = x, MAP_H_M - y
+                cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 200), -1) # circle on node position
+                cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 4) # draw node name shadow
+                cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2) # draw node name
+            self.map = cv.flip(self.map, 0) # flip the map back
+            #convert map to grayscale and back to color
+            self.map = cv.cvtColor(cv.cvtColor(self.map, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
+            
         exit_points = self.int_out + self.ra_out
         exit_points = np.array([self.get_xy(x) for x in exit_points])
         path_exit_points = []
@@ -213,18 +226,18 @@ class PathPlanning():
         return np.arctan2(y2-y1, x2-x1)
 
     def draw_path(self):
-        # draw nodes
-        self.map = cv.flip(self.map, 0) # flip the map vertically
-        for node in self.all_nodes:
-            x,y = self.get_xy(node)
-            x,y = x, MAP_H_M - y
-            cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 200), -1) # circle on node position
-            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 4) # draw node name shadow
-            cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2) # draw node name
-        self.map = cv.flip(self.map, 0) # flip the map back
+        # # draw nodes
+        # self.map = cv.flip(self.map, 0) # flip the map vertically
+        # for node in self.all_nodes:
+        #     x,y = self.get_xy(node)
+        #     x,y = x, MAP_H_M - y
+        #     cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 200), -1) # circle on node position
+        #     cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 4) # draw node name shadow
+        #     cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2) # draw node name
+        # self.map = cv.flip(self.map, 0) # flip the map back
 
-        #convert map to grayscale and back to color
-        self.map = cv.cvtColor(cv.cvtColor(self.map, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
+        # #convert map to grayscale and back to color
+        # self.map = cv.cvtColor(cv.cvtColor(self.map, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
 
         # # draw edges
         # for edge in self.all_edges:

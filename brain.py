@@ -602,12 +602,12 @@ class Brain:
             if SHOW_IMGS: # draw the stopline 
                 color = RED
                 sl = get_stopline_coords(d, e2, -alpha, self.car.pose)
+                cv.line(self.d.gmap, m2pix(sl[0]), m2pix(sl[1]), BLACK, 20)
                 cv.line(self.d.gmap, m2pix(sl[0]), m2pix(sl[1]), color, 12)
                 psl = project_onto_frame(sl, self.car.pose, FRONT_CAM)
                 cv.line(self.d.gframe, psl[0], psl[1], color, 5)
                 psl = project_onto_frame(sl, self.car.pose, TOP_CAM)
                 cv.line(self.d.gtopview, psl[0], psl[1], color, 5)
-
 
             if APPLY_YAW_CORRECTION:
                 raise NotImplementedError
@@ -1405,11 +1405,13 @@ class Brain:
             cond = dist < 0.9
             color, th = ((0,0,250), 4) if cond else ((0,0,120), 2)
             sl = get_stopline_coords(dist, 0.0, 0.0, self.car.pose)
-            if cond : cv.line(self.d.gmap, m2pix(sl[0]), m2pix(sl[1]), (0,0,120), 4)
+            if cond : 
+                cv.line(self.d.gmap, m2pix(sl[0]), m2pix(sl[1]), BLACK, 7) #draw on map
+                cv.line(self.d.gmap, m2pix(sl[0]), m2pix(sl[1]), (0,0,120), 4) #draw on map
             psl = project_onto_frame(sl, self.car.pose, FRONT_CAM)
-            if psl is not None: cv.line(self.d.gframe, psl[0], psl[1], color, th)
+            if psl is not None: cv.line(self.d.gframe, psl[0], psl[1], color, th) #draw on frame
             psl = project_onto_frame(sl, self.car.pose, TOP_CAM)
-            if psl is not None: cv.line(self.d.gtopview, psl[0], psl[1], color, th)
+            if psl is not None: cv.line(self.d.gtopview, psl[0], psl[1], color, th) #draw on topview
 
         past_detections = self.routines[DETECT_STOP_LINE].var2
         if dist < STOP_LINE_APPROACH_DISTANCE: #-0.05 #network is more accurate in this range
