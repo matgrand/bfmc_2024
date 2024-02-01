@@ -48,7 +48,9 @@ class PathPlanning():
         self.all_nodes_coords = np.array([self.get_xy(node) for node in self.all_nodes])
         self.all_start_nodes_coords = np.array([self.get_xy(node) for node in self.all_start_nodes])
 
-        self.map, _ = load_map()
+        self.map, _ = load_map() # load the map image
+        #convert map to grayscale and back to color
+        self.map = cv.cvtColor(cv.cvtColor(self.map, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
     
     def compute_shortest_path(self, source=473, target=207):
         ''' Generates the shortest path between source and target nodes using Clothoid interpolation '''
@@ -105,12 +107,10 @@ class PathPlanning():
             for node in self.all_nodes:
                 x,y = self.get_xy(node)
                 x,y = x, MAP_H_M - y
-                cv.circle(self.map, xy2cv(x,y), 5, (0, 0, 200), -1) # circle on node position
+                cv.circle(self.map, xy2cv(x,y), 5, (67, 67, 67), -1) # circle on node position
                 cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 4) # draw node name shadow
-                cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 250), 2) # draw node name
+                cv.putText(self.map, str(node), xy2cv(x,y), cv.FONT_HERSHEY_SIMPLEX, 1, (67,67,67), 2) # draw node name
             self.map = cv.flip(self.map, 0) # flip the map back
-            #convert map to grayscale and back to color
-            self.map = cv.cvtColor(cv.cvtColor(self.map, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
             
         exit_points = self.int_out + self.ra_out
         exit_points = np.array([self.get_xy(x) for x in exit_points])
@@ -126,7 +126,7 @@ class PathPlanning():
                 p = self.path[index_min_dist]
                 path_exit_points.append(p)
                 path_exit_point_idx.append(index_min_dist)
-                if draw: cv.circle(self.map, p2cv(p), 20, (0,150,0), 5)
+                # if draw: cv.circle(self.map, p2cv(p), 20, LIGHT_BLUE, 5)
         path_exit_point_idx = np.array(path_exit_point_idx)
         #reorder points by idx
         exit_points = []
@@ -152,7 +152,7 @@ class PathPlanning():
                 path_event_points.append(p)
                 path_event_points_idx.append(index_min_dist)
                 path_event_types.append(self.event_types[i])
-                if draw: cv.circle(self.map, p2cv(p), 20, (0,255,0), 5)
+                if draw: cv.circle(self.map, p2cv(p), 20, LIGHT_BLUE, 5)
         path_event_points_idx = np.array(path_event_points_idx)
         #reorder
         self.path_event_points = []
@@ -180,13 +180,13 @@ class PathPlanning():
                 local_idx += 1
                 path_event_path_ahead.append(path_ahead)
                 if draw:
-                    for p in path_ahead: cv.circle(self.map, p2cv(p), 10, (200,150,0), 5)
+                    for p in path_ahead: cv.circle(self.map, p2cv(p), 10, LIGHT_BLUE, 5)
             elif t.startswith('junction') or t.startswith('highway'):
                 assert len(self.path) > 0
                 path_ahead = self.path[self.path_event_points_idx[i]:min(self.path_event_points_idx[i]+140, len(self.path))]
                 path_event_path_ahead.append(path_ahead)
                 if draw:
-                    for p in path_ahead: cv.circle(self.map, p2cv(p), 10, (200,150,0), 5)
+                    for p in path_ahead: cv.circle(self.map, p2cv(p), 10, LIGHT_BLUE, 5)
             else:
                 path_event_path_ahead.append(None)
         print(f'path_event_points_idx: {self.path_event_points_distances}')
@@ -213,7 +213,7 @@ class PathPlanning():
         index_closest = np.argmin(np.hypot(nx - self.stop_points[:,0], ny - self.stop_points[:,1]))
         print(f'Closest stop point is {self.stop_points[index_closest, :]}, Point is {nx, ny}')
         #draw a circle around the closest stop point
-        if draw: cv.circle(self.map, m2pix(self.stop_points[index_closest]), 8, (0, 255, 0), 4)
+        if draw: cv.circle(self.map, m2pix(self.stop_points[index_closest]), 8, LIGHT_BLUE, 4)
         return self.stop_points[index_closest, 0], self.stop_points[index_closest, 1]
 
     def get_xy(self, node):
@@ -246,7 +246,7 @@ class PathPlanning():
         #     cv.line(self.map, p2cv(p1), p2cv(p2), (0, 255, 255), 2)
 
         # draw trajectory
-        cv.polylines(self.map, [m2pix(self.path)], False, (200, 200, 0), thickness=6, lineType=cv.LINE_AA)
+        cv.polylines(self.map, [m2pix(self.path)], False, DLIGHT_BLUE, thickness=12, lineType=cv.LINE_AA)
 
     def get_closest_start_node(self, x, y):
         ''' Returns the closes node to the given x,y coordinates '''

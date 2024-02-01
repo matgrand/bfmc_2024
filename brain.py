@@ -641,9 +641,9 @@ class Brain:
                 ecc = get_car_corners(Pose(est_car_pos_wf[0], est_car_pos_wf[1], alpha)) #estimated car corners
                 tcc = get_car_corners(self.car.pose) #true car corners
                 cv.polylines(self.d.gmap, [m2pix(tcc)], True, BLACK, 12) #draw car shadow
-                cv.polylines(self.d.gmap, [m2pix(ecc)], True, BLACK, 12) #draw the estimated car pos
+                cv.polylines(self.d.gmap, [m2pix(ecc)], True, BLACK, 10) #draw the estimated car pos
                 cv.polylines(self.d.gmap, [m2pix(tcc)], True, DGREEN, 7) #draw the true car pos
-                cv.polylines(self.d.gmap, [m2pix(ecc)], True, color, 2) #draw the estimated car pos
+                cv.polylines(self.d.gmap, [m2pix(ecc)], True, color, 3) #draw the estimated car pos
 
 
         D = POINT_AHEAD_DISTANCE_LOCAL_TRACKING
@@ -1539,8 +1539,8 @@ class Brain:
             if SIMULATOR_FLAG: self.d.gtopview = self.car.top_frame.copy()
             self.d.gframe = self.car.frame.copy()
             if self.pp.path is not None:
-                draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose, color=(200,200,0), thickness=1, cam=TOP_CAM)
-                draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose, color=(200,200,0), thickness=1, cam=FRONT_CAM)
+                draw_points_on_frame(self.d.gtopview, self.pp.path[::5], self.car.pose, color=DLIGHT_BLUE, thickness=1, cam=TOP_CAM)
+                draw_points_on_frame(self.d.gframe, self.pp.path[::5], self.car.pose, color=DLIGHT_BLUE, thickness=1, cam=FRONT_CAM)
         
         # print and run stuff
         ts = gts()[0]

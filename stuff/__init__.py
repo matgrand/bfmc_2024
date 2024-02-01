@@ -45,7 +45,9 @@ class DebugStuff:
             if cp is not None:
                 color = DGREEN #car color
                 x,y = m2pix(cp.xy)
-                cv.circle(self.gmap, (x,y), 5, faint_color(self.pa_color), -1) #draw car position
+                xs, ys = m2pix(cp.xy + 0.05 * np.array([np.cos(cp.ψ), np.sin(cp.ψ)])) #car posiiton shadow slightly ahead
+                cv.circle(self.gmap, (xs,ys), 12, BLACK, -1) #draw car position shadow
+                cv.circle(self.gmap, (x,y), 6, faint_color(self.pa_color), -1) #draw car position
                 cc = get_car_corners(cp) #get car corners
                 SHOW_DIST = 0.55 # distance ahead just to show
                 pa = np.array([SHOW_DIST*np.cos(self.he),SHOW_DIST*np.sin(self.he)]) # point ahead
