@@ -7,7 +7,7 @@
         <pose>11.308 7.5 21 0 1.570796 1.570796</pose>
       </camera>
     </gui>  
-    <gravity>0 0 -9.8</gravity>
+    <gravity>0 0 -9.81</gravity>
     <light name='c1' type='point'>
       <pose frame=''>0 0 2 0 -0 0</pose>
       <diffuse>125 125 125 125</diffuse>
@@ -118,4 +118,3 @@
     </model>
   </world>
 </sdf>
-

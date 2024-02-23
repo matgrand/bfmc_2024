@@ -269,6 +269,10 @@ def place_car(x,y,yaw):
     set_state(state_msg)
     sleep(0.02)
 
+def reset_simulation():
+    # sp.run('rosservice call /gazebo/reset_simulation', shell=True)
+    sp.run('rosservice call /gazebo/reset_world', shell=True)
+
 def get_stopline_coords(slx, sly=0.0, slyaw=0.0, cp:Pose=None):
     SL_WIDTH = 0.4 #stopline width [m]
     xc, yc, yawc = cp.xyp

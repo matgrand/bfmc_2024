@@ -9,6 +9,8 @@ except Exception as e:
     print(f'excepion: {e}')
     print(f'ros not sourced or not installed, remember: to install:\n bash Simulator/recompile.sh\nto source write the following line in every terminal you open or add it to your bashrc file:\n source Simulator/devel/setup.bash\n\n') 
     exit()
+from os.path import join, exists, dirname
+import numpy as np
 
 #################################################################################################################################################################
 #################################################################################################################################################################
@@ -16,11 +18,10 @@ except Exception as e:
 #################################################################################################################################################################
 
 SIMULATOR_FLAG = True
+REPO_PATH = dirname(dirname(__file__))
 
 
 #====================== VEHICLE PARAMETERS ======================
-import numpy as np
-from os.path import join, exists, dirname
 
 YAW_GLOBAL_OFFSET = 0.0 if SIMULATOR_FLAG else np.deg2rad(-5) # [rad] IMU:yaw offset for true orientation of the map
 

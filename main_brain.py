@@ -53,7 +53,7 @@ if __name__ == '__main__':
     if SIMULATOR_FLAG: 
         ros_check_run(launch='car_with_map.launch', map='2024')
         sp.run('rosservice call gazebo/pause_physics', shell=True) 
-        sp.run('rosservice call /gazebo/reset_simulation', shell=True) 
+        reset_simulation()
         #init car
         car = CarSim()
     else: 
