@@ -232,6 +232,19 @@ def get_yaw_closest_axis(α):
     if int_angle == -2: int_angle = 2
     return int_angle*np.pi/2
 
+def run_ros_master(launch='car_with_map.launch'):
+    ''' Starts the ros master with the launch file 
+    launch: name of the launch file (e.g. 'car_with_map.launch', see folder:
+    Simulator/src/sim_pkg/launch/)
+    '''
+    assert exists(join(dirname(dirname(__file__)), 'Simulator/src/sim_pkg/launch', launch)), f'launch file not found: {launch}'
+    cmd = f'roslaunch sim_pkg {launch}'
+    sp.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
+
+def kill_ros_master():
+    ''' Kills the ros master '''
+    sp.run('pkill -f rosmaster', shell=True)
+
 def ros_check_run(launch='car_with_map.launch', map='2024'): 
     ''' Checks if the ros launch file is running, if not, it starts it 
     launch: name of the launch file (e.g. 'car_with_map.launch', see folder:
@@ -245,12 +258,26 @@ def ros_check_run(launch='car_with_map.launch', map='2024'):
         #set the map and run ros master with the launch file
         cmd =f'bash {join(dirname(dirname(__file__)), "Simulator", f"set_{map}_map.sh")} && roslaunch sim_pkg {launch}'
         sp.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
-        while True: #wait for the ros master to start
-            print('waiting for ros master to start...', end='\r')
-            if '/automobile/command' in sp.run('rostopic list', shell=True, capture_output=True).stdout.decode('utf-8'): 
-                print('ros master started!                     ')
-                break
-            sleep(0.3)
+        wait_for_ros_startup()
+
+def wait_for_ros_startup():
+    ''' Waits for the ros master to start '''
+    while True: #wait for the ros master to start
+        print('waiting for ros master to start...', end='\r')
+        if '/automobile/command' in sp.run('rostopic list', shell=True, capture_output=True).stdout.decode('utf-8'): 
+            print('ros master started!                     ')
+            break
+        sleep(0.1)
+
+def change_track(new_map):
+    ''' Changes the track in the simulator to the new_map '''
+    #copy the swap material into the bfmc_material
+    src_path = join(REPO_PATH, 'Simulator/src/models_pkg/track/materials/scripts/options/swap.material')
+    dst_path = join(REPO_PATH, 'Simulator/src/models_pkg/track/materials/scripts/bfmc_track.material')
+    sp.run(f'cp {src_path} {dst_path}', shell=True)
+    #set the new_map as the swap texture, that will be loaded by the bfmc_track.material
+    img_path = join(REPO_PATH, 'Simulator/src/models_pkg/track/materials/textures/swap.png')
+    cv.imwrite(img_path, new_map)
 
 # car placement in simulator
 from gazebo_msgs.msg import ModelState 

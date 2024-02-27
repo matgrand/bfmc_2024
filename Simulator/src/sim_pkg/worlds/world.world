@@ -22,7 +22,7 @@
       <direction>0 0 -1</direction>
     </light>
     <light name='c2' type='point'>
-      <pose frame=''>15 0 2 0 -0 0</pose>
+      <pose frame=''>22.6166 0 2 0 -0 0</pose>
       <diffuse>125 125 125 125</diffuse>
       <specular>50 50 50 50</specular>
       <attenuation>
@@ -48,7 +48,7 @@
       <direction>0 0 -1</direction>
     </light>
     <light name='c4' type='point'>
-      <pose frame=''>15 15 2 0 -0 0</pose>
+      <pose frame=''>22.6166 15 2 0 -0 0</pose>
       <diffuse>125 125 125 125</diffuse>
       <specular>50 50 50 50</specular>
       <attenuation>
