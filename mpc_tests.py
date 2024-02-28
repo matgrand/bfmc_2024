@@ -103,8 +103,8 @@ def create_track(step_length=0.01, road_width=0.4, n=36, md=2.8, bd=2.5, start_p
     track_points = np.hstack((track_points, thetas.reshape(-1,1))) #add the thetas to the track points
 
     # set the theta of start_p to 0
-    track_points[0, 2] = 0
-
+    track_points[np.argmin(np.linalg.norm(track_points[:,:2] - start_p, axis=1)), 2] = 0
+    
 
     # # add all the middle points between each pair of points
     # new_track_points = []    
@@ -165,58 +165,62 @@ def draw_map(track, left_lane, right_lane, line_width=0.02):
     cv.polylines(img, [ll], False, 255, line_width)
     cv.polylines(img, [rl], False, 255, line_width)
 
+    #flip image upside down
+    img = cv.flip(img, 0)
+
     #save the image
     cv.imwrite('tmp/swap.png', img)
 
-
-
-if __name__ == '__main__':
-    cv.namedWindow('track', cv.WINDOW_NORMAL)
-    cv.resizeWindow('track', 800, 600)
-    
-    for i in range(1000):
-        
-        tr, ll, rl = create_track()
-        draw_map(tr, ll, rl)
-        
-        # plot the track
-        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-        ax.plot(tr[:,0], tr[:,1], 'k--')
-        ax.plot(ll[:,0], ll[:,1], 'k-')
-        ax.plot(rl[:,0], rl[:,1], 'k-')
-        ax.axis('equal')
-        ax.set_xlim(0, MAP_SIZE_M[0])
-        ax.set_ylim(0, MAP_SIZE_M[1])
-        ax.grid(True)
-        ax.set_xticks(np.arange(0, MAP_SIZE_M[0]+1, 2))
-        plt.tight_layout()
-        fig.savefig('tmp/track.png', dpi=100)
-        plt.close(fig)
-
-        img = cv.imread('tmp/track.png')
-        cv.imshow('track', img)
-
-
-        if cv.waitKey(0) == 27:
-            break
-
-    cv.destroyAllWindows()
-
-
+    return img
 
 
 
 # if __name__ == '__main__':
+#     cv.namedWindow('track', cv.WINDOW_NORMAL)
+#     cv.resizeWindow('track', 800, 600)
+#     for i in range(1000):
+#         tr, ll, rl = create_track()
+#         draw_map(tr, ll, rl)
+#         # plot the track
+#         fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+#         ax.plot(tr[:,0], tr[:,1], 'k--')
+#         ax.plot(ll[:,0], ll[:,1], 'k-')
+#         ax.plot(rl[:,0], rl[:,1], 'k-')
+#         ax.axis('equal')
+#         ax.set_xlim(0, MAP_SIZE_M[0])
+#         ax.set_ylim(0, MAP_SIZE_M[1])
+#         ax.grid(True)
+#         ax.set_xticks(np.arange(0, MAP_SIZE_M[0]+1, 2))
+#         plt.tight_layout()
+#         fig.savefig('tmp/track.png', dpi=100)
+#         plt.close(fig)
+#         img = cv.imread('tmp/track.png')
+#         cv.imshow('track', img)
+#         if cv.waitKey(0) == 27:
+#             break
+#     cv.destroyAllWindows()
+
+
+if __name__ == '__main__':
     
-#     #create a random color map
-#     new_map = create_track()
-#     change_track(new_map) #change the map
 
-#     run_ros_master('bare_car_with_map.launch') #run the simulator
-#     wait_for_ros_startup() #wait for the simulator to start
+    for _ in range(20):
 
-#     while not ros.is_shutdown():
-#         print('running', end='\r')
-#         sleep(0.2)
+    #create a random color map
+        tr, ll, rl = create_track()
+        new_map = draw_map(tr, ll, rl)
 
-#     kill_ros_master() #kill the simulator
+        change_track(new_map) #change the map
+
+        run_ros_master('bare_car_with_map.launch') #run the simulator
+        wait_for_ros_startup() #wait for the simulator to start
+
+        #place car in start point
+        place_car(START_POINT[0], START_POINT[1], 0)
+
+        # while not ros.is_shutdown():
+        #     print('running', end='\r')
+        #     sleep(0.2)
+        sleep(5)
+
+        kill_ros_master() #kill the simulator
