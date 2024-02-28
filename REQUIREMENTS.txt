@@ -12,4 +12,3 @@ tqdm
 pyclothoids
 scipy
 casadi
-shapely
