@@ -19,7 +19,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-def create_track(step_length=0.001, road_width=0.4, curv_thrs=1.1, n=36, md=2.8, bd=2.5, start_p=START_POINT):
+def create_track(step_length=0.01, road_width=0.4, curv_thrs=1.1, n=36, md=2.8, bd=2.5, start_p=START_POINT):
     '''
     step_length: step length for the clothoid interpolation
     road_width: width of the road
@@ -116,11 +116,13 @@ def create_track(step_length=0.001, road_width=0.4, curv_thrs=1.1, n=36, md=2.8,
     #     xc,yc,thc = track_points[i]
     #     xf,yf,thf = track_points[(i+1)%len(track_points)]
     #     #add 2 middle points one at 1/3 and one at 2/3
-    #     x1, y1 = (2*xc+xf)/3, (2*yc+yf)/3
-    #     x2, y2 = (xc+2*xf)/3, (yc+2*yf)/3
+    #     # x1, y1 = (2*xc+xf)/3, (2*yc+yf)/3
+    #     # x2, y2 = (xc+2*xf)/3, (yc+2*yf)/3
+    #     x3, y3 = (xc+xf)/2, (yc+yf)/2
     #     th = np.arctan2(yf-yc, xf-xc)
-    #     new_track_points.append([x1, y1, th])
-    #     new_track_points.append([x2, y2, th])
+    #     # new_track_points.append([x1, y1, th])
+    #     # new_track_points.append([x2, y2, th])
+    #     new_track_points.append([x3, y3, th])
     # track_points = np.array(new_track_points)
 
     from pyclothoids import Clothoid
@@ -212,7 +214,7 @@ def draw_map(track, left_lane, right_lane, line_width=0.02):
 #             break
 #     cv.destroyAllWindows()
 
-SPEED = 1.0
+SPEED = 2.5
 
 if __name__ == '__main__':
 
