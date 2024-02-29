@@ -79,7 +79,7 @@ class Detection:
         #calculate estimated of thr point ahead to get visual feedback
         d = DISTANCE_POINT_AHEAD
         est_point_ahead = np.array([np.cos(e3)*d, np.sin(e3)*d])
-        print(f"est_point_ahead: {est_point_ahead}")
+        # print(f"est_point_ahead: {est_point_ahead}")
         # print(f"lane_detection: {1000*(time()-start_time):.2f} ms")
         lane_detection_time = 1000*(time()-start_time)
         self.avg_lane_detection_time = (self.avg_lane_detection_time*self.lane_cnt + lane_detection_time)/(self.lane_cnt+1)

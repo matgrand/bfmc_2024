@@ -56,12 +56,12 @@
           </image>
           <clip>
             <near>0.02</near>
-            <far>5.0</far> <!--100-->
+            <far>10.0</far> <!--100-->
           </clip>
           <noise>
             <type>gaussian</type>
             <mean>0.0</mean>
-            <stddev>0.0</stddev>
+            <stddev>0.02</stddev>
           </noise>
         </camera>
 
@@ -84,4 +84,3 @@
     </link>
   </model>
 </sdf>
-

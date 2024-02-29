@@ -167,9 +167,7 @@ class CarSim(Car):
         if curr_time - self.time_last_steer_command > 1/MAX_STEER_COMMAND_FREQ: #cannot receive commands too fast
             self.time_last_steer_command = curr_time
             self.steer_deque.append((angle, curr_time))
-        else:
-            print('Missed steer command...')
-        # self.target_steer = angle #self.steer is updated in the callback
+        else: print('Missed steer command...')
 
     def drive_distance(self, dist=0.0):
         '''Drive the car a given distance forward or backward
@@ -182,11 +180,9 @@ class CarSim(Car):
         self.arrived_at_dist = False
 
     def drive_distance_callback(self, data) -> None:
-        Kp = 0.5
-        max_speed = 0.2
         if not self.arrived_at_dist:
             dist_error = self.target_dist - self.encoder_distance
-            self.pub_speed(min(Kp * dist_error, max_speed))
+            self.pub_speed(min(0.5 * dist_error, 0.2))
             if np.abs(dist_error) < 0.01:
                 self.arrived_at_dist = True
                 self.drive_speed(0.0)

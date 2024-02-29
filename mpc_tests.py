@@ -1,6 +1,9 @@
 from stuff import *
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from detection import Detection
+from controller import Controller   
+from car_sim import CarSim
 
 MAP_SIZE = (12223, 8107)
 MAP_SIZE_M = np.array([22.6166, 15.0])
@@ -16,7 +19,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-def create_track(step_length=0.01, road_width=0.4, n=36, md=2.8, bd=2.5, start_p=START_POINT):
+def create_track(step_length=0.001, road_width=0.4, curv_thrs=1.1, n=36, md=2.8, bd=2.5, start_p=START_POINT):
     '''
     step_length: step length for the clothoid interpolation
     road_width: width of the road
@@ -25,6 +28,7 @@ def create_track(step_length=0.01, road_width=0.4, n=36, md=2.8, bd=2.5, start_p
     bd: border distance
     start_p: start point of the track
     '''
+    print('Creating track..................', end='\r')
     assert start_p[0] < bd or start_p[0] > MAP_SIZE_M[0] - bd or start_p[1] < bd or start_p[1] > MAP_SIZE_M[1] - bd, \
         'start point must be in the border'
     
@@ -104,7 +108,6 @@ def create_track(step_length=0.01, road_width=0.4, n=36, md=2.8, bd=2.5, start_p
 
     # set the theta of start_p to 0
     track_points[np.argmin(np.linalg.norm(track_points[:,:2] - start_p, axis=1)), 2] = 0
-    
 
     # # add all the middle points between each pair of points
     # new_track_points = []    
@@ -143,15 +146,24 @@ def create_track(step_length=0.01, road_width=0.4, n=36, md=2.8, bd=2.5, start_p
     #check if there are points outside the map
     k = 0.5+0.1
     if np.any((track-k*road_width) < 0) or np.any((track+k*road_width) > MAP_SIZE_M):
-        # print('Some points are outside the map, creating a new track')
+        print(f'Some points are outside the map, creating a new track, {np.random.randint(100)}', end='\r')
         return create_track()
     
     # check for self intersection
     from shapely.geometry import LineString
     if not LineString(left_lane).is_simple or not LineString(right_lane).is_simple:
-        # print('Self intersection detected, creating a new track')
+        print(f'Self intersection detected, creating a new track, {np.random.randint(100)}', end='\r') 
         return create_track()
     
+    # check track for max curvature
+    s2a = int(0.5 / step_length) #samples to analyze
+    for i in range(s2a, len(track)-s2a):
+        points = track[i-s2a:i+s2a]
+        curv = get_curvature(points)
+        if curv > curv_thrs:
+            print(f'Max curvature exceeded, creating a new track, {np.random.randint(100)}', end='\r')
+            return create_track()
+    print('Track created..................')
     return track, left_lane, right_lane
 
 def draw_map(track, left_lane, right_lane, line_width=0.02):
@@ -200,27 +212,43 @@ def draw_map(track, left_lane, right_lane, line_width=0.02):
 #             break
 #     cv.destroyAllWindows()
 
+SPEED = 1.0
 
 if __name__ == '__main__':
+
+    cc = Controller() #init the controller
+    dd = Detection() #init the detection class
+
+    cv.namedWindow('frame', cv.WINDOW_NORMAL) #create the window
+    cv.resizeWindow('frame', 640, 480) #resize the window
+
+    tr, ll, rl = create_track() #create the track
+    new_map = draw_map(tr, ll, rl) #draw the map
+    change_track(new_map) #change the map in the simulator
+
+    run_ros_master('bare_car_with_map.launch') #run the simulator
+    wait_for_ros_startup() #wait for the simulator to start
     
+    place_car(START_POINT[0], START_POINT[1], 0) # place the car at the start point
+    car = CarSim() #init the car
 
-    for _ in range(20):
+    #wait for the car to start, check if car.frame = zeros
+    while np.all(car.frame == 0): 
+        print(f'waiting for car to start {np.random.randint(100)}', end='\r')
+        sleep(0.1)
 
-    #create a random color map
-        tr, ll, rl = create_track()
-        new_map = draw_map(tr, ll, rl)
+    while not ros.is_shutdown():
+        t0 = time() # loop start time
+        
+        _, e3, _ = dd.detect_lane(car.frame) #detect the lane
+        s, a = cc.get_control(0, e3, 0, SPEED) #get the control
+        car.drive(s,np.rad2deg(a)) #drive the car
 
-        change_track(new_map) #change the map
+        #check the car is on track
+        a=0
+        
+        cv.imshow('frame', car.frame) #show the frame
+        if cv.waitKey(1) == 27: break
+        sleep(max(0, 1/30 - (time()-t0))) #1/fps
 
-        run_ros_master('bare_car_with_map.launch') #run the simulator
-        wait_for_ros_startup() #wait for the simulator to start
-
-        #place car in start point
-        place_car(START_POINT[0], START_POINT[1], 0)
-
-        # while not ros.is_shutdown():
-        #     print('running', end='\r')
-        #     sleep(0.2)
-        sleep(5)
-
-        kill_ros_master() #kill the simulator
+    kill_ros_master() #kill the simulator

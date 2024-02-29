@@ -51,6 +51,7 @@ WB = 0.26  			                # [m]       wheelbase
 # Camera parameters
 FRAME_WIDTH = 320#640           # [pix]     frame width
 FRAME_HEIGHT = 240#480          # [pix]     frame height
+DEFAULT_CAMERA_FRAME = np.zeros((FRAME_WIDTH, FRAME_HEIGHT)) # default camera frame
 # position and orientation wrt the car frame
 CAM_X = 0.0                 # [m]
 CAM_Y = 0.0                 # [m]

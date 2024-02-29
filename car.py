@@ -57,7 +57,7 @@ class Car():
         self.lateral_sonar_distance = 3.0           # [m]   SONAR: unfiltered distance from the lateral sonar
         self.filtered_lateral_sonar_distance = 3.0  # [m]   SONAR: filtered distance from the lateral sonar
         # CAMERA
-        self.frame = np.zeros((FRAME_WIDTH, FRAME_HEIGHT)) # [ndarray] CAM:image of the camera
+        self.frame = DEFAULT_CAMERA_FRAME # [ndarray] CAM:image of the camera
         # CONTROL ACTION
         self.speed = 0.0            # [m/s]     MOTOR:speed
         self.steer = 0.0            # [rad]     SERVO:steering angle
