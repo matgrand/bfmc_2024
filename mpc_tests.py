@@ -158,7 +158,7 @@ def create_track(step_length=0.01, road_width=0.4, curv_thrs=1.1, n=36, md=2.8, 
         return create_track()
     
     # check track for max curvature
-    s2a = int(0.5 / step_length) #samples to analyze
+    s2a = int(0.3 / step_length) #samples to analyze
     for i in range(s2a, len(track)-s2a):
         points = track[i-s2a:i+s2a]
         curv = get_curvature(points)
@@ -168,7 +168,7 @@ def create_track(step_length=0.01, road_width=0.4, curv_thrs=1.1, n=36, md=2.8, 
     print('Track created..................')
     return track, left_lane, right_lane
 
-def draw_map(track, left_lane, right_lane, line_width=0.02):
+def draw_map(track, left_lane, right_lane, line_width=0.02, fine_std=0.1, coarse_std=0.05):
     #define b/w image
     img = np.zeros((int(MAP_SIZE[1]), int(MAP_SIZE[0])), dtype=np.uint8)
     ll = m2pix(left_lane, k=K_SMALL)
@@ -179,11 +179,24 @@ def draw_map(track, left_lane, right_lane, line_width=0.02):
     cv.polylines(img, [ll], False, 255, line_width)
     cv.polylines(img, [rl], False, 255, line_width)
 
+    #convert to bgr
+    img = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+
+    #add gaussian noise to the image (fine noise)
+    img = np.clip(img + 255*np.random.normal(0, fine_std, img.shape), 0, 255).astype(np.uint8)
+
+    # add some random noise to the image (coarse noise)
+    K_coarse = 1/15
+    noise_img_size = (int(MAP_SIZE[0]*K_coarse), int(MAP_SIZE[1]*K_coarse), 3)
+    noise = cv.resize(255*np.random.normal(0, coarse_std, noise_img_size), MAP_SIZE)
+    img = np.clip(img + noise, 0, 255).astype(np.uint8)
+
     #flip image upside down
     img = cv.flip(img, 0)
 
     #save the image
     cv.imwrite('tmp/swap.png', img)
+    print('Map drawn..................')
 
     return img
 
@@ -192,9 +205,11 @@ def draw_map(track, left_lane, right_lane, line_width=0.02):
 # if __name__ == '__main__':
 #     cv.namedWindow('track', cv.WINDOW_NORMAL)
 #     cv.resizeWindow('track', 800, 600)
+#     cv.namedWindow('swap', cv.WINDOW_NORMAL)
+#     cv.resizeWindow('swap', 800, 600)
 #     for i in range(1000):
 #         tr, ll, rl = create_track()
-#         draw_map(tr, ll, rl)
+#         swap = draw_map(tr, ll, rl)
 #         # plot the track
 #         fig, ax = plt.subplots(1, 1, figsize=(10, 8))
 #         ax.plot(tr[:,0], tr[:,1], 'k--')
@@ -210,8 +225,9 @@ def draw_map(track, left_lane, right_lane, line_width=0.02):
 #         plt.close(fig)
 #         img = cv.imread('tmp/track.png')
 #         cv.imshow('track', img)
-#         if cv.waitKey(0) == 27:
-#             break
+#         cv.imshow('swap', swap)
+
+#         if cv.waitKey(0) == 27: break
 #     cv.destroyAllWindows()
 
 SPEED = 2.5

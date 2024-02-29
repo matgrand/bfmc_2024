@@ -11,6 +11,7 @@ except Exception as e:
     exit()
 from os.path import join, exists, dirname
 import numpy as np
+import os
 
 #################################################################################################################################################################
 #################################################################################################################################################################
@@ -19,6 +20,8 @@ import numpy as np
 
 SIMULATOR_FLAG = True
 REPO_PATH = dirname(dirname(__file__))
+if not exists(join(REPO_PATH, 'tmp')):
+    os.mkdir(join(REPO_PATH, 'tmp'))
 
 
 #====================== VEHICLE PARAMETERS ======================
