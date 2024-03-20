@@ -10,7 +10,7 @@ from controllerSP import ControllerSpeed
 IMSHOW = False
 SPEED = False
 
-DES_SPEED = 0.3
+DES_SPEED = 0.3 # 0.5 for speed
 
 MAX_SPEED = 0.6
 MAX_ANGLE = 23.0
