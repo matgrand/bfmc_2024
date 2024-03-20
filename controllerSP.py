@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import numpy as np
-from stuff import *
+WB = 0.26
 import time
 from scipy.signal import butter, lfilter, lfilter_zi
 from casadi import *

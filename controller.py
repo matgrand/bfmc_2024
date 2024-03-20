@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import numpy as np
-from stuff.names_and_constants import WB, PP_DA #NOTE: double check that wheelbase is the correct one to be used here
+WB = 0.26
+PP_DA = 0.35 # [m] distance from the car to the point ahead
 from time import time
 
 class Controller():

@@ -24,7 +24,8 @@ from environmental_data_simulator import EnvironmentalData
 
 END_NODE_SPEED_CHALLENGE = 458
 # CHECKPOINTS = [472,206,500,147,380]
-CHECKPOINTS = [472,206,500,156,380,321,340]
+# CHECKPOINTS = [472,206,500,156,380,321,340]
+CHECKPOINTS = [472,463,206,500,156,380,321,340]
 SPEED_CHALLENGE = False
 
 ALWAYS_USE_VISION_FOR_STOPLINES = True
@@ -923,6 +924,7 @@ class Brain:
             self.error('ERROR: AVOIDING_ROADBLOCK: Wrong substate')
     
     def parking(self):
+        print(f'WARNING: PARKING HAS BEEN MODIFIED FOR DEMO PURPOSES')
         #Substates
         LOCALIZING_PARKING_SPOT = 1
         CHECKING_FOR_PARKED_CARS = 2
@@ -945,16 +947,17 @@ class Brain:
             # We just got in the parking state, we came from lane following, we are reasonably close to the parking spot and we are not moving
             # self.curr_state.var1 will hold the parking substate, the parking type, and if it has just changed state
             park_state = LOCALIZING_PARKING_SPOT
-            #find park type with position
-            park_pos = self.next_event.point
-            s_pos = np.array(self.pp.get_xy('177'))
-            t_pos = np.array(self.pp.get_xy('162'))
-            d_s = norm(park_pos - s_pos) #distances from the s parking spot
-            d_t = norm(park_pos - t_pos) #distances from the t parking spot
-            if d_s < d_t and d_s < 0.2: park_type = S_PARK
-            elif d_t <= d_s and d_t < 0.2: park_type = T_PARK
-            else:
-                self.error('ERROR: PARKING -> parking spot is not close to expected parking spot position!')
+            # #find park type with position
+            # park_pos = self.next_event.point
+            # s_pos = np.array(self.pp.get_xy('177'))
+            # t_pos = np.array(self.pp.get_xy('162'))
+            # d_s = norm(park_pos - s_pos) #distances from the s parking spot
+            # d_t = norm(park_pos - t_pos) #distances from the t parking spot
+            # if d_s < d_t and d_s < 0.2: park_type = S_PARK
+            # elif d_t <= d_s and d_t < 0.2: park_type = T_PARK
+            # else:
+            #     self.error('ERROR: PARKING -> parking spot is not close to expected parking spot position!')
+            park_type = S_PARK
             self.curr_state.var1 = (park_state, park_type, True)           
             self.curr_state.just_switched = False
         
@@ -1007,6 +1010,7 @@ class Brain:
                     else: 
                         self.error('ERROR: PARKING: In front of parking spot, or maximum search distance reached')
             elif (self.parking_method == 'sign' or ALWAYS_USE_SIGN_FOR_PARKING) and not ALWAYS_USE_GPS_FOR_PARKING:
+                raise NotImplementedError
                 print('Using sign for parking')
                 if just_changed:
                     #create a deque of past PARK_SIGN_DETETCTION_PATIENCE sing detection results
@@ -1062,8 +1066,7 @@ class Brain:
                 dist_first_spot = DIST_SIGN_FIRST_S_SPOT
                 dist_spots = DIST_S_SPOTS
                 further_dist = FURTHER_DIST_S
-            else:
-                self.error('ERROR: PARKING: Unknown parking type!')
+            else: self.error('ERROR: PARKING: Unknown parking type!')
 
             if (dist_first_spot < curr_dist < (dist_first_spot+0.1)) and not checked1:
                 self.car.drive_speed(0.0)
