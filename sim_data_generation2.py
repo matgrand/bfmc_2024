@@ -101,7 +101,7 @@ for sn_std, pos_std in zip(STEER_NOSIE_STDS_DEG, POSITION_NOISE_STD):
     LAP_Y_TRSH = 2.54 + 2.5
     START_X = 5.03
     START_Y = LAP_Y_TRSH
-    START_YAW = np.deg2rad(90.0) + np.pi
+    START_YAW = np.deg2rad(90.0) + π
 
     while frame is None:
         print('waiting for frame')

@@ -140,8 +140,8 @@ def create_track(step_length=0.01, road_width=0.4, curv_thrs=1.1, n=36, md=2.8, 
 
     #get the external lines
     th = np.arctan2(np.diff(track[:, 1]), np.diff(track[:, 0]))
-    dxl, dyl = 0.5 * road_width * np.cos(th + np.pi / 2), 0.5 * road_width * np.sin(th + np.pi / 2)
-    dxr, dyr = 0.5 * road_width * np.cos(th - np.pi / 2), 0.5 * road_width * np.sin(th - np.pi / 2)
+    dxl, dyl = 0.5 * road_width * np.cos(th + π / 2), 0.5 * road_width * np.sin(th + π / 2)
+    dxr, dyr = 0.5 * road_width * np.cos(th - π / 2), 0.5 * road_width * np.sin(th - π / 2)
     left_lane = track[:-1] + np.column_stack((dxl, dyl))
     right_lane = track[:-1] + np.column_stack((dxr, dyr))
 

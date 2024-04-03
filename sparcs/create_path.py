@@ -2,7 +2,7 @@ from cmath import sin
 from zipapp import get_interpreter
 import numpy as np
 import matplotlib.pyplot as plt
-PI = np.pi
+π = π
 
 R = 1.03#+0.37/2     # big radius
 r = 0.65#+0.37/2    # small radius
@@ -18,11 +18,11 @@ assert (R + L + r) <= 6.0 - 2*m
 # assert (2*R + 0.4) <= 3.0 - 2*m
 
 if __name__ == '__main__':
-    CR = PI * R
-    cr =  PI * r * 0.5
+    CR = π * R
+    cr =  π * r * 0.5
 
     # big arc
-    th = np.linspace(0, -PI, round((PI*R/d)))
+    th = np.linspace(0, -π, round((π*R/d)))
     g12 = np.array([1.5 + R*np.cos(th) , m+R + R*np.sin(th)])[:,:-1]
     print(f'g12 shape = {g12.shape}')
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     g23 = np.vstack((g23x, g23y))[:,:-1]
     print(f'g23 shape = {g23.shape}') 
 
-    th = np.linspace(-PI, -1.5*PI, round((0.5*PI*r/d)))
+    th = np.linspace(-π, -1.5*π, round((0.5*π*r/d)))
     g34x = (1.5-R+r) + r*np.cos(th)
     g34y = (R+m+L) + r*np.sin(th)
     g34 = np.vstack((g34x, g34y))[:,:-1]
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     g45 = np.vstack((g45x, g45y))[:,:-1]
     print(f'g45 shape = {g45.shape}') 
 
-    th = np.linspace(-1.5*PI, -2*PI, round((0.5*PI*r/d)))
+    th = np.linspace(-1.5*π, -2*π, round((0.5*π*r/d)))
     g56x = (1.5+R-r) + r*np.cos(th)
     g56y = (R+m+L) + r*np.sin(th)
     g56 = np.vstack((g56x, g56y))[:,:-1]

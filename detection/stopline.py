@@ -480,7 +480,7 @@ def detect_angle(original_frame=None, plot=False):
   # cv2.namedWindow('lines', cv2.WINDOW_NORMAL)
   # cv2.imshow('lines',img)
   # cv2.waitKey(0) 
-  lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=30, minLineLength=80, maxLineGap=5)
+  lines = cv2.HoughLinesP(img, rho=1, theta=π/180, threshold=30, minLineLength=80, maxLineGap=5)
   angles = []
   if lines is None:
     return 0.0
@@ -495,7 +495,7 @@ def detect_angle(original_frame=None, plot=False):
   angles = angles[np.abs(angles-angle_median)<np.deg2rad(5.0)]
   final_angle = np.mean(angles)
 
-  if np.abs(final_angle) > np.pi/4:
+  if np.abs(final_angle) > π/4:
     return 0.0
   elif final_angle > np.deg2rad(31.0):
     return np.deg2rad(31.0)

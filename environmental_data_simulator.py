@@ -22,7 +22,7 @@ from utils.msg import vehicles
 if SIMULATOR_FLAG:
     from stuff import *
 else:
-    raise NotImplementedError('Not implemented for PI')
+    raise NotImplementedError('Not implemented for π')
     from control.helper_functions import *
 
 VEHICLE_CLOSE_RADIUS = 0.5  # [m]

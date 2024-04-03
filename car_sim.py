@@ -114,7 +114,7 @@ class CarSim(Car):
         #get the direction of the movement: + or -
         motion_yaw = + np.arctan2(curr_y - prev_y, curr_x - prev_x)
         abs_yaw_diff = np.abs(diff_angle(motion_yaw, self.yaw_true))
-        sign = 1.0 if abs_yaw_diff < np.pi/2 else -1.0
+        sign = 1.0 if abs_yaw_diff < π/2 else -1.0
         dt = curr_time - prev_time
         if dt > 0.0:
             velocity = (delta * sign) / dt

@@ -3,7 +3,6 @@ from stuff import *
 # SHOW_IMGS = False
 SHOW_IMGS = True
 
-
 import numpy as np, cv2 as cv
 from time import time, sleep
 from numpy.linalg import norm
@@ -12,7 +11,7 @@ from shutil import get_terminal_size as gts
 
 if SIMULATOR_FLAG: from car_sim import Car
 else: 
-    raise NotImplementedError('Not implemented for PI')
+    raise NotImplementedError('Not implemented for π')
     from control.automobile_data_interface import Automobile_Data
 
 from stuff import *
@@ -619,7 +618,7 @@ class Brain:
                     diff = diff_angle(self.next_event.yaw_stopline + alpha, self.car.yaw)
                     self.car.yaw_offset += diff
                     self.car.yaw += diff
-            # assert abs(alpha) < np.pi/6, f'Car orientation wrt stopline is too big, it needs to be better aligned, alpha = {alpha}' #TODO uncomment this line
+            # assert abs(alpha) < π/6, f'Car orientation wrt stopline is too big, it needs to be better aligned, alpha = {alpha}' #TODO uncomment this line
             R = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]]) #rotation matrix
             local_path_cf = local_path_slf_rot # get position of the car in the stop line frame
             local_path_cf = local_path_cf @ R #NOTE: rotation first if we ignore the lateral error and consider only the euclidean distance from the line

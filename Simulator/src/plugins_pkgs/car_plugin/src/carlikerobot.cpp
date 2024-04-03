@@ -43,7 +43,7 @@ namespace gazebo{
             float  speed_rad_per_sec = speed_meter_per_sec / this->_wheelradius;
             
             
-            float l_K = tan(steeringAngle_deg / 180.0 * PI)/this->_wheelbase;
+            float l_K = tan(steeringAngle_deg / 180.0 * π)/this->_wheelbase;
 
             float l_Vr_R = speed_rad_per_sec*sqrt((pow(2.0-this->_axletrack*l_K,2.0)+pow(2.0*l_K*this->_wheelbase,2))/(4.0*(1.0+pow(_wheelbase*l_K,2.0))));
             float l_Vr_L = speed_rad_per_sec*sqrt((pow(2.0+_axletrack*l_K,2.0)+pow(2.0*l_K*_wheelbase,2))/(4.0*(1.0+pow(_wheelbase*l_K,2.0))));
@@ -86,7 +86,7 @@ namespace gazebo{
         {
             float  l_Vr_m_radpsec = f_Vr_m_meterpsec/_wheelradius;
 
-            float l_K = tan(f_steerAngle_deg/180.0*PI)/this->_wheelbase;
+            float l_K = tan(f_steerAngle_deg/180.0*π)/this->_wheelbase;
             float l_Vr_R = l_Vr_m_radpsec*(2-_axletrack*l_K)/2;
             float l_Vr_L = l_Vr_m_radpsec*(2+_axletrack*l_K)/2;
 
@@ -124,13 +124,13 @@ namespace gazebo{
         void CSteerWheelsAngle::update(float f_steerAngle_deg)
         {
             
-            float l_K = tan(f_steerAngle_deg / 180.0 * PI) / this->_wheelbase;
+            float l_K = tan(f_steerAngle_deg / 180.0 * π) / this->_wheelbase;
             float l_steer_right = -1.0 * atan(_wheelbase * 2.0 * l_K / (2.0 - this->_axletrack * l_K));
             float l_steer_left = -1.0 * atan(_wheelbase * 2.0 * l_K / (2.0 + this->_axletrack * l_K));
 
             if(DEBUG)
             {
-                ROS_INFO("Angle:\t\t\t[%f, %f]", l_steer_left*180.0/PI,l_steer_right*180.0/PI);
+                ROS_INFO("Angle:\t\t\t[%f, %f]", l_steer_left*180.0/π,l_steer_right*180.0/π);
                 ROS_INFO_STREAM("====================================================================");
             }
             

@@ -2,8 +2,8 @@
 #include <gazebo/common/common.hh>
 #include <ros/ros.h>
 
-#ifndef PI
-#define PI 3.141592654
+#ifndef π
+#define π 3.141592654
 #endif
 
 namespace gazebo

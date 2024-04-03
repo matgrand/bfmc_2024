@@ -227,10 +227,10 @@ def get_yaw_closest_axis(α):
     Returns the α multiple of pi/2 closest to the given α 
     e.g. returns one of these 4 possible options: [-pi/2, 0, pi/2, pi]
     """
-    int_angle = round(α/(np.pi/2))
+    int_angle = round(α/(π/2))
     assert int_angle in [-2,-1,0,1,2], f'α: {int_angle}'
     if int_angle == -2: int_angle = 2
-    return int_angle*np.pi/2
+    return int_angle*π/2
 
 def run_ros_master(launch='car_with_map.launch'):
     ''' Starts the ros master with the launch file 

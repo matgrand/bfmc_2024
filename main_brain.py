@@ -9,8 +9,8 @@ print('Main brain starting...')
 if SIMULATOR_FLAG:
     from car_sim import CarSim
     from stuff import *
-else: #PI
-    raise NotImplementedError('Not implemented for PI')
+else: #π
+    raise NotImplementedError('Not implemented for π')
     from control.automobile_data_pi import CarPi
     from control.helper_functions import *
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         #init car
         car = CarSim()
     else: 
-        raise NotImplementedError('Not implemented for PI')
+        raise NotImplementedError('Not implemented for π')
         car = CarPi()
     sleep(.5)
     car.encoder_distance = 0.0
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     while not ros.is_shutdown():
         loop_start_time = time() #start time of the loop
 
-        if not SIMULATOR_FLAG: #PI -> get image from camera
+        if not SIMULATOR_FLAG: #π -> get image from camera
             ret, frame = cap.read()
             brain.car.frame = frame
             if not ret:
